@@ -1,0 +1,6 @@
+Test_Case,Module,Menu,Action,Expected_Result,Screenshot
+TC001,StateConfig,StateConfigMenu,EditFL,FL state edited with min APR 38,FL_State_Edit
+TC002,ChannelConfig,ChannelConfigMenu,EditCMACT,CMACT channel edited with max term 40,CMACT_Screenshots
+TC003,PromoteToProd,ReviewQueueMenu,PromoteInvalidAddress,AE_INVALID_ADDRESS promoted to production,Promote_InvalidAddress
+TC004,CutoffBuilder,CutoffBuilderMenu,AddCutoffRow,Cutoff row added successfully,CutoffBuilder_AddRow
+TC005,Navigation,DashboardMenu,NavigateMenus,All menus navigated successfully,Navigation_Complete

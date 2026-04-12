@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="AE_RE_SmokeUI" parallel="tests" thread-count="1">
+    <test name="SmokeTest">
+        <classes>
+            <class name="tests.SmokeTest"/>
+        </classes>
+    </test>
+</suite>

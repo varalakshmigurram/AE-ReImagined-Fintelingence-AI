@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite thread-count="1" parallel="tests" name="Failed suite [AE_RE_SmokeUI]" guice-stage="DEVELOPMENT" verbose="0">
+  <test thread-count="1" parallel="tests" name="SmokeTest(failed)" verbose="0">
+    <classes>
+      <class name="tests.SmokeTest">
+        <methods>
+          <include name="tearDown"/>
+          <include name="setup"/>
+          <include name="executeSmokeTest" invocation-numbers="0"/>
+        </methods>
+      </class> <!-- tests.SmokeTest -->
+    </classes>
+  </test> <!-- SmokeTest(failed) -->
+</suite> <!-- Failed suite [AE_RE_SmokeUI] -->

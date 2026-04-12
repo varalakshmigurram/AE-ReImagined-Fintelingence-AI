@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite thread-count="1" parallel="tests" name="Failed suite [AE_RE_BasicFlow]" guice-stage="DEVELOPMENT" verbose="0">
+  <test thread-count="1" parallel="tests" name="BasicFlow(failed)" verbose="0">
+    <classes>
+      <class name="tests.BasicFlowTest">
+        <methods>
+          <include name="testUIFlow"/>
+        </methods>
+      </class> <!-- tests.BasicFlowTest -->
+    </classes>
+  </test> <!-- BasicFlow(failed) -->
+</suite> <!-- Failed suite [AE_RE_BasicFlow] -->
