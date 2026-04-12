@@ -1,11 +1,10 @@
 # Dependencies
 frontend/node_modules/
-backend/target/
 
-# Build outputs
+# Build outputs - ALL target directories
+**/target/
 frontend/dist/
 frontend/build/
-backend/target/
 
 # Environment files
 .env
