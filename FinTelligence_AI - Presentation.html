@@ -1,0 +1,3410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinTelligence AI — AE Rule Engine · ADF Gen AI Hackathon 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --navy:   #0B1F3A;
+    --blue:   #1A56DB;
+    --blue2:  #2563EB;
+    --cyan:   #0891B2;
+    --green:  #059669;
+    --amber:  #D97706;
+    --red:    #DC2626;
+    --purple: #7C3AED;
+    --slate:  #475569;
+    --slate2: #64748B;
+    --border: #E2E8F0;
+    --bg:     #F8FAFF;
+    --white:  #FFFFFF;
+    --card:   #FFFFFF;
+    --text:   #0F172A;
+    --muted:  #64748B;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    width:100%; height:100%;
+    font-family:'DM Sans', sans-serif;
+    background:#EEF2FF;
+    overflow:hidden;
+    color:var(--text);
+  }
+
+  /* ── Slideshow shell ────────────────────────────────────────────── */
+  #deck {
+    width:100vw; height:100vh;
+    display:flex; flex-direction:column;
+    background:#EEF2FF;
+    position:relative;
+  }
+
+  /* Progress bar */
+  #progress-bar {
+    position:fixed; top:0; left:0; height:3px;
+    background:linear-gradient(90deg,var(--blue),var(--cyan));
+    transition:width .4s cubic-bezier(.4,0,.2,1);
+    z-index:1000;
+  }
+
+  /* Slide wrapper */
+  .slide {
+    display:none;
+    width:100%; height:100vh;
+    overflow:hidden;
+    position:relative;
+    background:var(--bg);
+    animation:slideIn .45s cubic-bezier(.4,0,.2,1);
+  }
+  .slide.active { display:flex; flex-direction:column; }
+
+  @keyframes slideIn {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* Nav controls */
+  #nav {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,.9);
+    backdrop-filter:blur(12px);
+    border:1px solid var(--border);
+    border-radius:40px;
+    padding:8px 20px;
+    box-shadow:0 4px 24px rgba(0,0,0,.08);
+    z-index:999;
+  }
+  #nav button {
+    width:36px; height:36px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:var(--blue); color:#fff;
+    font-size:16px; display:flex; align-items:center; justify-content:center;
+    transition:all .2s;
+  }
+  #nav button:hover { transform:scale(1.08); background:var(--blue2); }
+  #nav button:disabled { background:#CBD5E0; cursor:default; transform:none; }
+  #slide-counter {
+    font-size:13px; font-weight:600; color:var(--slate); min-width:60px; text-align:center;
+  }
+
+  /* Slide dots */
+  #dots {
+    display:flex; gap:6px; align-items:center;
+  }
+  .dot {
+    width:7px; height:7px; border-radius:50%;
+    background:#CBD5E0; cursor:pointer;
+    transition:all .25s;
+  }
+  .dot.active { background:var(--blue); width:22px; border-radius:4px; }
+
+  /* Keyboard hint */
+  #hint {
+    position:fixed; bottom:76px; left:50%; transform:translateX(-50%);
+    font-size:11px; color:var(--muted);
+    background:rgba(255,255,255,.7); padding:3px 10px; border-radius:20px;
+    animation:fadeOut 3s 4s forwards;
+  }
+  @keyframes fadeOut { to { opacity:0; } }
+
+  /* ── Shared slide components ───────────────────────────────────── */
+  .slide-header {
+    padding:28px 48px 0;
+    flex-shrink:0;
+  }
+  .slide-label {
+    font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--blue); margin-bottom:6px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .slide-label::before {
+    content:''; width:24px; height:2px; background:var(--blue);
+  }
+  .slide-title {
+    font-family:'DM Serif Display', serif;
+    font-size:38px; line-height:1.08;
+    color:var(--navy); letter-spacing:-.02em;
+  }
+  .slide-sub {
+    font-size:14px; color:var(--muted); margin-top:8px; font-weight:400;
+  }
+  .slide-body {
+    flex:1; overflow:hidden;
+    padding:16px 48px 80px;
+    display:flex; gap:24px;
+  }
+
+  /* Cards */
+  .card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+    padding:20px;
+    position:relative;
+  }
+  .card-title {
+    font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:14px;
+  }
+
+  /* Stat cards */
+  .stat-grid { display:grid; gap:12px; }
+  .stat-card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px 18px;
+    box-shadow:0 1px 3px rgba(0,0,0,.04);
+    position:relative;
+    overflow:hidden;
+  }
+  .stat-card::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:4px;
+    border-radius:2px 0 0 2px;
+    background:var(--accent-color, var(--blue));
+  }
+  .stat-val {
+    font-family:'DM Serif Display', serif;
+    font-size:32px; line-height:1;
+    color:var(--accent-color, var(--blue));
+  }
+  .stat-label { font-size:12px; color:var(--muted); margin-top:6px; font-weight:500; }
+  .stat-sub { font-size:10px; color:#94A3B8; margin-top:3px; }
+  .trend-up   { font-size:11px; font-weight:700; color:var(--green); }
+  .trend-down { font-size:11px; font-weight:700; color:var(--red); }
+
+  /* ── SLIDE 1: HERO ─────────────────────────────────────────────── */
+  #s1 { background:linear-gradient(145deg, #F0F6FF 0%, #E8F0FF 40%, #F0F9FF 100%); }
+
+  .adf-logo {
+    width:100px; height:100px; margin-bottom:20px;
+    display:flex; align-items:center; justify-content:center;
+    animation:logoFloat 3s ease-in-out infinite, logoGlow 2.5s ease-in-out infinite;
+    filter:drop-shadow(0 8px 24px rgba(0,0,0,.15));
+  }
+  .adf-logo img {
+    width:100%; height:100%; object-fit:contain;
+  }
+  @keyframes logoFloat {
+    0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-8px) scale(1.05)}
+  }
+  @keyframes logoGlow {
+    0%,100%{filter:drop-shadow(0 8px 24px rgba(44,62,80,.2))} 50%{filter:drop-shadow(0 12px 32px rgba(44,62,80,.4))}
+  }
+
+  .hero-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:32px;
+    height:100%;
+    padding:20px 48px 80px;
+  }
+  .hero-left {
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .hero-tag {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(26,86,219,.08); border:1px solid rgba(26,86,219,.2);
+    border-radius:20px; padding:5px 14px;
+    font-size:11px; font-weight:700; color:var(--blue);
+    letter-spacing:.08em; text-transform:uppercase;
+    width:fit-content; margin-bottom:20px;
+  }
+  .hero-tag span { width:7px; height:7px; border-radius:50%; background:var(--blue); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.5)} }
+
+  .hero-title {
+    font-family:'DM Serif Display', serif;
+    font-size:52px; line-height:1.04;
+    color:var(--navy); letter-spacing:-.03em; margin-bottom:8px;
+  }
+  .hero-title em { color:var(--blue); font-style:normal; }
+  .hero-sub {
+    font-size:16px; color:var(--muted); line-height:1.6;
+    max-width:440px; margin-bottom:28px;
+  }
+  .hero-stats {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px;
+  }
+  .hero-stat {
+    background:var(--white);
+    border:1px solid var(--border); border-radius:10px;
+    padding:14px 16px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .hero-stat-val {
+    font-family:'DM Serif Display', serif;
+    font-size:28px; color:var(--blue); line-height:1;
+  }
+  .hero-stat-label { font-size:11px; color:var(--muted); margin-top:5px; }
+
+  .hero-badge {
+    display:inline-flex; gap:8px; flex-wrap:wrap;
+  }
+  .badge {
+    font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px;
+  }
+  .badge-blue   { background:#EFF6FF; color:var(--blue); border:1px solid #BFDBFE; }
+  .badge-green  { background:#ECFDF5; color:var(--green); border:1px solid #A7F3D0; }
+  .badge-amber  { background:#FFFBEB; color:var(--amber); border:1px solid #FDE68A; }
+  .badge-purple { background:#F5F3FF; color:var(--purple); border:1px solid #DDD6FE; }
+
+  /* App preview */
+  .hero-right {
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .browser-frame {
+    width:100%; max-width:520px;
+    background:var(--white);
+    border-radius:14px;
+    box-shadow:0 20px 60px rgba(15,23,42,.15), 0 4px 16px rgba(15,23,42,.08);
+    overflow:hidden;
+    border:1px solid var(--border);
+    animation:float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}
+  }
+  .browser-bar {
+    background:#F1F5F9; padding:10px 14px;
+    display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--border);
+  }
+  .browser-dots { display:flex; gap:5px; }
+  .browser-dots span {
+    width:10px; height:10px; border-radius:50%;
+  }
+  .browser-dots span:nth-child(1){background:#FC5F57;}
+  .browser-dots span:nth-child(2){background:#FDBB2E;}
+  .browser-dots span:nth-child(3){background:#27C840;}
+  .browser-url {
+    flex:1; background:var(--white); border-radius:5px;
+    padding:3px 10px; font-size:11px; color:var(--muted);
+    font-family:'JetBrains Mono', monospace; border:1px solid var(--border);
+  }
+  .browser-content {
+    display:grid; grid-template-columns:140px 1fr;
+    height:280px; overflow:hidden;
+  }
+  .mini-sidebar {
+    background:#0B1F3A; padding:12px 0;
+    overflow:hidden;
+  }
+  .mini-sidebar-item {
+    padding:6px 14px; font-size:9.5px; color:#94A3B8;
+    cursor:pointer; transition:all .2s;
+    white-space:nowrap;
+  }
+  .mini-sidebar-item.active-item {
+    background:rgba(26,86,219,.2); color:#60A5FA; font-weight:600;
+  }
+  .mini-sidebar-item.new-item { color:#06B6D4; }
+  .mini-section-label {
+    padding:8px 14px 2px; font-size:8px; font-weight:700;
+    letter-spacing:.1em; color:#D97706; text-transform:uppercase;
+  }
+  .mini-content {
+    background:#F8FAFF; padding:12px; overflow:hidden;
+  }
+  .mini-offer-card {
+    background:linear-gradient(135deg,#1A56DB,#1D4ED8);
+    border-radius:8px; padding:12px 14px; margin-bottom:8px;
+    color:white;
+  }
+  .mini-offer-label { font-size:8px; opacity:.7; letter-spacing:.1em; margin-bottom:4px; }
+  .mini-offer-amount { font-family:'DM Serif Display',serif; font-size:28px; line-height:1; }
+  .mini-offer-meta { font-size:8px; opacity:.7; margin-top:4px; }
+  .mini-constraint {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:4px 8px; border-radius:5px; margin-bottom:3px;
+    background:var(--white); border:1px solid var(--border); font-size:8.5px;
+  }
+  .mini-constraint.binding {
+    border-color:#BFDBFE; background:#EFF6FF; color:var(--blue); font-weight:700;
+  }
+
+  /* ── SLIDE 2: ANIMATED STORY ───────────────────────────────────── */
+  #s2 { background:#FAFBFF; }
+
+  .story-container {
+    flex:1; display:flex; flex-direction:column;
+    padding:0 48px 80px;
+    gap:16px;
+  }
+  .story-tabs {
+    display:flex; gap:0; border-bottom:2px solid var(--border);
+    flex-shrink:0;
+  }
+  .story-tab {
+    padding:10px 24px; font-size:13px; font-weight:600;
+    color:var(--muted); cursor:pointer; border-bottom:3px solid transparent;
+    margin-bottom:-2px; transition:all .2s;
+  }
+  .story-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+
+  /* Animation stage */
+  .anim-stage {
+    flex:1; display:none; flex-direction:column; gap:12px;
+  }
+  .anim-stage.active { display:flex; }
+
+  /* Excel scene */
+  .excel-scene {
+    display:grid; grid-template-columns:1fr 40px 1fr;
+    gap:0; align-items:start; height:100%;
+  }
+
+  .scene-card {
+    background:var(--white); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .scene-card-header {
+    padding:10px 16px; font-size:11px; font-weight:700;
+    display:flex; align-items:center; gap:8px;
+  }
+  .scene-icon {
+    width:22px; height:22px; border-radius:5px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px;
+  }
+
+  /* Fake Excel */
+  .excel-grid { font-family:'JetBrains Mono', monospace; }
+  .excel-header-row {
+    display:grid; grid-template-columns:80px repeat(4,1fr);
+    background:#217346; padding:5px 8px; gap:1px;
+  }
+  .excel-header-cell { font-size:9px; font-weight:700; color:white; text-align:center; }
+  .excel-row {
+    display:grid; grid-template-columns:80px repeat(4,1fr);
+    gap:1px; padding:0 8px;
+    transition:all .3s;
+  }
+  .excel-row:nth-child(even) { background:#F7FFF7; }
+  .excel-cell {
+    padding:5px 4px; font-size:9px; color:#1C4532;
+    border-right:1px solid #D1FAE5; text-align:center;
+    border-bottom:1px solid #D1FAE5;
+  }
+  .excel-cell.changed {
+    background:#FEF08A; color:#713F12; font-weight:700;
+    animation:cellBlink .6s ease-in-out 3;
+  }
+  @keyframes cellBlink { 0%,100%{background:#FEF08A} 50%{background:#FDE047} }
+
+  /* People icons */
+  .people-flow {
+    display:flex; flex-direction:column; gap:8px; padding:8px;
+  }
+  .person-step {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:10px;
+    background:linear-gradient(135deg,#F8FAFF,#FAFBFF); border:1.5px solid var(--border);
+    font-size:12px; opacity:.5;
+    transition:all .5s cubic-bezier(.4,0,.2,1);
+    position:relative; overflow:hidden;
+    animation:stepFadeIn .6s cubic-bezier(.4,0,.2,1) backwards;
+  }
+  .person-step:nth-child(1) { animation-delay:0s; }
+  .person-step:nth-child(2) { animation-delay:.1s; }
+  .person-step:nth-child(3) { animation-delay:.2s; }
+  .person-step:nth-child(4) { animation-delay:.3s; }
+  .person-step:nth-child(5) { animation-delay:.4s; }
+  .person-step:nth-child(6) { animation-delay:.5s; }
+  @keyframes stepFadeIn {
+    from{opacity:0;transform:translateY(12px)}
+    to{opacity:.5;transform:translateY(0)}
+  }
+  .person-step.done {
+    opacity:1; background:linear-gradient(135deg,#ECFDF5,#F0FDF4);
+    border-color:#A7F3D0;
+  }
+  .person-step.active-step {
+    opacity:1; background:linear-gradient(135deg,#EFF6FF,#F0F9FF);
+    border-color:#BFDBFE; box-shadow:0 4px 16px rgba(26,86,219,.15);
+    transform:translateX(4px);
+  }
+  .person-avatar {
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; flex-shrink:0;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+    animation:avatarBounce 2s ease-in-out infinite;
+  }
+  .person-step:nth-child(1) .person-avatar { animation-delay:0s; }
+  .person-step:nth-child(2) .person-avatar { animation-delay:.2s; }
+  .person-step:nth-child(3) .person-avatar { animation-delay:.4s; }
+  .person-step:nth-child(4) .person-avatar { animation-delay:.6s; }
+  .person-step:nth-child(5) .person-avatar { animation-delay:.8s; }
+  .person-step:nth-child(6) .person-avatar { animation-delay:1s; }
+  @keyframes avatarBounce {
+    0%,100%{transform:scale(1)} 50%{transform:scale(1.08)}
+  }
+  .step-info { flex:1; }
+  .step-title { font-weight:700; color:var(--navy); font-size:12px; }
+  .step-time  { font-size:11px; color:var(--muted); font-weight:500; }
+  .step-badge {
+    font-size:10px; font-weight:700; padding:3px 8px; border-radius:12px;
+    animation:badgePulse 2s ease-in-out infinite;
+  }
+  .person-step:nth-child(1) .step-badge { animation-delay:0s; }
+  .person-step:nth-child(2) .step-badge { animation-delay:.2s; }
+  .person-step:nth-child(3) .step-badge { animation-delay:.4s; }
+  .person-step:nth-child(4) .step-badge { animation-delay:.6s; }
+  .person-step:nth-child(5) .step-badge { animation-delay:.8s; }
+  .person-step:nth-child(6) .step-badge { animation-delay:1s; }
+  @keyframes badgePulse {
+    0%,100%{transform:scale(1)} 50%{transform:scale(1.1)}
+  }
+  .badge-warn { background:#FFFBEB; color:var(--amber); }
+  .badge-ok   { background:#ECFDF5; color:var(--green); }
+  .badge-danger { background:#FEF2F2; color:var(--red); }
+
+  .timeline-arrow {
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:4px;
+    color:var(--muted); font-size:18px;
+  }
+  .total-time-badge {
+    font-size:22px; font-weight:800; color:var(--red);
+    font-family:'DM Serif Display', serif;
+    background:#FEF2F2; border:2px solid #FECACA;
+    border-radius:10px; padding:4px 12px; text-align:center;
+  }
+
+  /* Platform scene */
+  .platform-click-zone {
+    background:linear-gradient(135deg,#EFF6FF,#F0F9FF);
+    border-radius:12px; border:2px solid var(--blue);
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:12px; padding:24px;
+    cursor:pointer; transition:all .3s;
+    height:100%;
+  }
+  .platform-click-zone:hover {
+    transform:scale(1.01);
+    box-shadow:0 8px 32px rgba(26,86,219,.2);
+  }
+  .big-click-btn {
+    width:72px; height:72px; border-radius:50%;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; box-shadow:0 8px 24px rgba(26,86,219,.3);
+    animation:breathe 2.5s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%,100%{transform:scale(1);box-shadow:0 8px 24px rgba(26,86,219,.3)}
+    50%{transform:scale(1.06);box-shadow:0 12px 36px rgba(26,86,219,.5)}
+  }
+  .click-label { font-size:14px; font-weight:700; color:var(--navy); text-align:center; }
+  .click-sub { font-size:12px; color:var(--muted); text-align:center; }
+
+  .deploy-steps { display:flex; flex-direction:column; gap:8px; width:100%; }
+  .deploy-step {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:10px; background:linear-gradient(135deg,var(--white),#FAFBFF);
+    border:1.5px solid var(--border); font-size:12px; font-weight:600;
+    color:var(--muted); transition:all .4s cubic-bezier(.4,0,.2,1);
+    position:relative; overflow:hidden;
+    animation:deploySlideIn .5s cubic-bezier(.4,0,.2,1) backwards;
+  }
+  .deploy-step:nth-child(1) { animation-delay:0s; }
+  .deploy-step:nth-child(2) { animation-delay:.1s; }
+  .deploy-step:nth-child(3) { animation-delay:.2s; }
+  .deploy-step:nth-child(4) { animation-delay:.3s; }
+  .deploy-step:nth-child(5) { animation-delay:.4s; }
+  @keyframes deploySlideIn {
+    from{opacity:0;transform:translateX(-16px)}
+    to{opacity:1;transform:translateX(0)}
+  }
+  .deploy-step.done-step {
+    background:linear-gradient(135deg,#ECFDF5,#F0FDF4); border-color:#A7F3D0;
+    color:var(--green); box-shadow:0 4px 12px rgba(5,150,105,.1);
+  }
+  .deploy-step:hover {
+    transform:translateX(4px); border-color:var(--blue);
+    background:linear-gradient(135deg,#EFF6FF,#F0F9FF);
+  }
+  .deploy-step .step-icon {
+    font-size:16px; animation:iconSpin 2s ease-in-out infinite;
+  }
+  .deploy-step:nth-child(1) .step-icon { animation-delay:0s; }
+  .deploy-step:nth-child(2) .step-icon { animation-delay:.2s; }
+  .deploy-step:nth-child(3) .step-icon { animation-delay:.4s; }
+  .deploy-step:nth-child(4) .step-icon { animation-delay:.6s; }
+  .deploy-step:nth-child(5) .step-icon { animation-delay:.8s; }
+  @keyframes iconSpin {
+    0%,100%{transform:scale(1) rotate(0deg)} 50%{transform:scale(1.1) rotate(10deg)}
+  }
+  .deploy-time {
+    font-size:11px; margin-left:auto; font-weight:800;
+    font-family:'DM Serif Display',serif;
+    animation:timeGlow 1.5s ease-in-out infinite;
+  }
+  .deploy-step:nth-child(1) .deploy-time { animation-delay:0s; }
+  .deploy-step:nth-child(2) .deploy-time { animation-delay:.2s; }
+  .deploy-step:nth-child(3) .deploy-time { animation-delay:.4s; }
+  .deploy-step:nth-child(4) .deploy-time { animation-delay:.6s; }
+  .deploy-step:nth-child(5) .deploy-time { animation-delay:.8s; }
+  @keyframes timeGlow {
+    0%,100%{opacity:.6} 50%{opacity:1}
+  }
+
+  /* ── SLIDE 3: CHARTS DASHBOARD ─────────────────────────────────── */
+  #s3 { background:#FAFBFF; }
+
+  .charts-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-rows:1fr 1fr;
+    gap:16px;
+    flex:1;
+    overflow:hidden;
+  }
+  .chart-card {
+    background:var(--white);
+    border:1px solid var(--border); border-radius:12px;
+    padding:16px; display:flex; flex-direction:column;
+    box-shadow:0 1px 4px rgba(0,0,0,.04);
+    overflow:hidden;
+  }
+  .chart-card.wide { grid-column:span 2; }
+  .chart-card.tall { grid-row:span 2; }
+  .chart-title {
+    font-size:12px; font-weight:700; color:var(--navy); margin-bottom:4px;
+  }
+  .chart-subtitle { font-size:10px; color:var(--muted); margin-bottom:12px; }
+  .chart-wrap { flex:1; min-height:0; position:relative; }
+
+  /* ── SLIDE 4: OFFER CALCULATOR ─────────────────────────────────── */
+  #s4 { background:#FAFBFF; }
+
+  .calculator-layout {
+    display:grid; grid-template-columns:280px 1fr 280px;
+    gap:16px; flex:1; overflow:hidden;
+  }
+  .calc-inputs { display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+  .input-group { display:flex; flex-direction:column; gap:4px; }
+  .input-label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .input-select, .input-field {
+    padding:8px 12px; border-radius:8px;
+    border:1.5px solid var(--border); background:var(--white);
+    font-size:13px; font-family:'DM Sans',sans-serif;
+    color:var(--text); outline:none; transition:border .2s;
+    width:100%;
+  }
+  .input-select:focus, .input-field:focus { border-color:var(--blue); }
+  .calc-btn {
+    padding:12px; border-radius:10px;
+    background:linear-gradient(135deg,var(--blue),var(--blue2));
+    color:white; border:none; cursor:pointer;
+    font-size:14px; font-weight:700; font-family:'DM Sans',sans-serif;
+    letter-spacing:.02em; transition:all .2s;
+    box-shadow:0 4px 16px rgba(26,86,219,.25);
+    margin-top:4px;
+  }
+  .calc-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(26,86,219,.35); }
+
+  /* Result */
+  .calc-result { display:flex; flex-direction:column; gap:12px; }
+  .offer-card {
+    background:linear-gradient(135deg,#1A56DB 0%,#0891B2 100%);
+    border-radius:14px; padding:24px;
+    color:white; position:relative; overflow:hidden;
+    box-shadow:0 8px 32px rgba(26,86,219,.3);
+  }
+  .offer-card::after {
+    content:''; position:absolute; right:-30px; top:-30px;
+    width:140px; height:140px; border-radius:50%;
+    background:rgba(255,255,255,.06);
+  }
+  .offer-amount {
+    font-family:'DM Serif Display',serif;
+    font-size:52px; line-height:1; margin-bottom:4px;
+    position:relative; z-index:1;
+  }
+  .offer-meta { font-size:12px; opacity:.8; position:relative; z-index:1; }
+  .offer-pills { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .offer-pill {
+    background:rgba(255,255,255,.15); border-radius:20px;
+    padding:4px 12px; font-size:11px; font-weight:600;
+    border:1px solid rgba(255,255,255,.25);
+  }
+
+  /* L constraints */
+  .l-constraint {
+    display:flex; align-items:center; gap:10px;
+    padding:8px 12px; border-radius:8px;
+    background:var(--white); border:1.5px solid var(--border);
+    transition:all .3s;
+  }
+  .l-constraint.binding {
+    background:#EFF6FF; border-color:#BFDBFE;
+  }
+  .l-key {
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; font-weight:700; color:var(--muted);
+    min-width:24px;
+  }
+  .l-constraint.binding .l-key { color:var(--blue); }
+  .l-desc { flex:1; font-size:11px; color:var(--slate); }
+  .l-val {
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px; font-weight:700; color:var(--slate);
+  }
+  .l-constraint.binding .l-val { color:var(--blue); }
+  .binding-badge {
+    font-size:9px; font-weight:700; background:var(--blue);
+    color:white; padding:2px 7px; border-radius:10px;
+  }
+
+  /* Right panel payment breakdown */
+  .payment-table { width:100%; border-collapse:collapse; }
+  .payment-table th {
+    font-size:10px; font-weight:700; color:var(--muted); text-align:left;
+    padding:6px 8px; border-bottom:1px solid var(--border);
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .payment-table td {
+    padding:8px; font-size:12px; border-bottom:1px solid #F1F5F9;
+  }
+  .payment-table td:first-child { font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--navy); }
+
+  /* ── SLIDE 5: GRADE ENGINE ─────────────────────────────────────── */
+  #s5 { background:#FAFBFF; }
+
+  .grade-layout {
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+    flex:1; overflow:hidden;
+  }
+  .grade-left { display:flex; flex-direction:column; gap:12px; overflow:hidden; }
+  .grade-right { display:flex; flex-direction:column; gap:12px; overflow:hidden; }
+
+  .score-inputs {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;
+  }
+  .score-box {
+    background:var(--white); border:1.5px solid var(--border);
+    border-radius:10px; padding:12px;
+    transition:all .3s;
+  }
+  .score-box.active-score { border-color:var(--blue); background:#EFF6FF; }
+  .score-box-label { font-size:10px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+  .score-box-val {
+    font-family:'DM Serif Display',serif; font-size:28px;
+    color:var(--navy); margin-top:4px; cursor:default;
+  }
+  .score-box-result { font-size:10px; color:var(--green); font-weight:700; margin-top:2px; }
+
+  /* IB Matrix */
+  .ib-matrix-wrap { flex:1; overflow:auto; }
+  .ib-matrix {
+    border-collapse:collapse; font-family:'JetBrains Mono',monospace;
+    font-size:10px; width:100%;
+  }
+  .ib-matrix th {
+    background:var(--navy); color:rgba(255,255,255,.7);
+    padding:5px 4px; text-align:center; font-size:8px;
+    font-weight:700; letter-spacing:.04em;
+    position:sticky; top:0;
+  }
+  .ib-matrix td {
+    padding:5px 4px; text-align:center;
+    border:1px solid rgba(255,255,255,.15);
+    font-weight:600; transition:all .3s; cursor:pointer;
+  }
+  .ib-matrix .row-header {
+    background:var(--navy); color:rgba(255,255,255,.8);
+    font-size:9px; position:sticky; left:0;
+  }
+  .ib-matrix td.active-cell {
+    outline:3px solid var(--blue);
+    outline-offset:-1px;
+    font-weight:800; font-size:11px;
+  }
+
+  /* Grade result */
+  .grade-flow { display:flex; flex-direction:column; gap:8px; }
+  .grade-step-row {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; border-radius:10px;
+    background:var(--white); border:1.5px solid var(--border);
+    font-size:12px;
+  }
+  .grade-step-row.applied {
+    background:#F0FDF4; border-color:#A7F3D0;
+  }
+  .grade-pill {
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'DM Serif Display',serif; font-size:14px; font-weight:700;
+    flex-shrink:0;
+  }
+  .final-grade-banner {
+    background:linear-gradient(135deg,#059669,#0891B2);
+    border-radius:12px; padding:16px; color:white;
+    display:flex; align-items:center; gap:16px;
+  }
+  .final-grade-big {
+    font-family:'DM Serif Display',serif; font-size:48px;
+    line-height:1;
+  }
+
+  /* ── SLIDE 6: IMPACT METRICS ───────────────────────────────────── */
+  #s6 { background:#FAFBFF; }
+
+  .metrics-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    grid-template-rows:auto 1fr 1fr;
+    gap:14px; flex:1; overflow:hidden;
+  }
+  .metric-hero {
+    background:var(--white); border:1px solid var(--border);
+    border-radius:12px; padding:16px 20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .metric-before {
+    font-size:13px; color:var(--red); font-weight:600;
+    text-decoration:line-through; opacity:.7;
+  }
+  .metric-after {
+    font-family:'DM Serif Display',serif;
+    font-size:36px; color:var(--green); line-height:1;
+  }
+  .metric-saving {
+    font-size:11px; font-weight:700; color:var(--green);
+    background:#ECFDF5; border:1px solid #A7F3D0;
+    border-radius:20px; padding:3px 10px;
+    display:inline-block; margin-top:6px;
+  }
+  .metric-label { font-size:11px; color:var(--muted); margin-top:4px; }
+  .chart-row { grid-column:span 4; }
+
+  /* ── SLIDE 7: GOVERNANCE FEATURES ─────────────────────────────── */
+  #s7 { background:#FAFBFF; }
+
+  .feat-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:18px;
+    flex:1; overflow:hidden;
+  }
+  .feat-card {
+    background:var(--white); border:2px solid var(--border);
+    border-radius:16px; padding:28px;
+    display:flex; flex-direction:column; gap:16px;
+    box-shadow:0 4px 16px rgba(0,0,0,.08);
+    transition:all .35s cubic-bezier(.4,0,.2,1);
+    cursor:pointer;
+    overflow:hidden;
+    position:relative;
+  }
+  .feat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0;
+    height:4px; background:var(--accent-color, var(--blue));
+    transition:height .35s;
+  }
+  .feat-card:hover {
+    transform:translateY(-8px) scale(1.02);
+    box-shadow:0 16px 48px rgba(0,0,0,.15);
+    border-color:var(--accent-color, var(--blue));
+  }
+  .feat-card:hover::before { height:6px; }
+  .feat-card-header { display:flex; align-items:center; gap:14px; }
+  .feat-icon-wrap {
+    width:52px; height:52px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; flex-shrink:0;
+    box-shadow:0 4px 12px rgba(0,0,0,.1);
+    transition:transform .35s;
+  }
+  .feat-card:hover .feat-icon-wrap { transform:scale(1.12) rotate(5deg); }
+  .feat-card-title { font-size:18px; font-weight:700; color:var(--navy); }
+  .feat-card-tag { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .feat-body { font-size:13px; color:var(--slate); line-height:1.6; }
+  .feat-items { list-style:none; display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .feat-items li {
+    display:flex; align-items:flex-start; gap:10px;
+    font-size:13px; color:var(--slate); font-weight:500;
+    line-height:1.5;
+  }
+  .feat-items li::before { content:'✓'; color:var(--accent-color, var(--blue)); font-weight:800; flex-shrink:0; font-size:16px; }
+  .feat-why {
+    font-size:12px; font-style:italic; color:var(--blue);
+    background:#EFF6FF; border-radius:8px; padding:10px 12px;
+    border-left:4px solid var(--blue); margin-top:auto;
+    line-height:1.6;
+  }
+
+  /* ── SLIDE 8: WIN ──────────────────────────────────────────────── */
+  #s8 { background:linear-gradient(145deg,#F0F6FF 0%,#EEF2FF 50%,#F0F9FF 100%); }
+
+  .win-grid {
+    display:grid; grid-template-columns:1fr 400px;
+    gap:32px; flex:1; overflow:hidden;
+    padding:0 48px 80px;
+  }
+  .win-left { display:flex; flex-direction:column; justify-content:center; gap:14px; }
+  .win-point {
+    display:flex; align-items:center; gap:14px;
+    padding:12px 18px; border-radius:12px;
+    background:var(--white); border:1px solid var(--border);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+    font-size:13px; color:var(--navy); font-weight:500;
+    line-height:1.4;
+    transition:all .2s;
+  }
+  .win-point:hover { transform:translateX(4px); border-color:#BFDBFE; }
+  .win-emoji { font-size:20px; flex-shrink:0; }
+  .win-right {
+    display:flex; flex-direction:column; gap:12px;
+    justify-content:center;
+  }
+  .win-stat-big {
+    background:var(--white); border:1px solid var(--border);
+    border-radius:14px; padding:20px 24px;
+    display:flex; flex-direction:column;
+    box-shadow:0 4px 16px rgba(0,0,0,.06);
+    border-left:4px solid var(--accent, var(--blue));
+  }
+  .win-stat-number {
+    font-family:'DM Serif Display',serif;
+    font-size:52px; line-height:1;
+  }
+  .win-stat-label { font-size:12px; color:var(--muted); margin-top:4px; }
+
+  /* ── ANIMATIONS ─────────────────────────────────────────────────── */
+  .fade-up {
+    opacity:0; transform:translateY(16px);
+    transition:all .5s cubic-bezier(.4,0,.2,1);
+  }
+  .fade-up.visible { opacity:1; transform:translateY(0); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#CBD5E0; border-radius:2px; }
+
+  /* Heatmap */
+  .heatmap-grid {
+    display:grid; gap:2px;
+    grid-template-columns:60px repeat(7,1fr);
+    font-size:9px;
+  }
+  .heatmap-cell {
+    height:26px; border-radius:3px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:9px; cursor:pointer;
+    transition:transform .15s;
+  }
+  .heatmap-cell:hover { transform:scale(1.05); }
+  .heatmap-label { display:flex; align-items:center; font-size:9.5px; color:var(--slate); font-weight:600; font-family:'JetBrains Mono',monospace; }
+
+  /* ── SLIDE 11: BEFORE/AFTER COMPARISON ─────────────────────────────── */
+  .comparison-tabs {
+    display:flex; gap:12px; padding:0 48px 20px;
+    border-bottom:2px solid var(--border);
+    flex-shrink:0;
+  }
+  .comparison-tab {
+    padding:12px 24px; font-size:14px; font-weight:700;
+    background:transparent; border:none; cursor:pointer;
+    color:var(--muted); transition:all .3s;
+    border-bottom:3px solid transparent; margin-bottom:-2px;
+    position:relative;
+  }
+  .comparison-tab:hover { color:var(--navy); }
+  .comparison-tab.active {
+    color:var(--blue); border-bottom-color:var(--blue);
+  }
+
+  .comparison-container {
+    flex:1; overflow:hidden; padding:0 48px 80px;
+  }
+  .comparison-view {
+    display:none; animation:fadeIn .5s cubic-bezier(.4,0,.2,1);
+  }
+  .comparison-view.active { display:block; }
+  @keyframes fadeIn {
+    from{opacity:0} to{opacity:1}
+  }
+
+  .workflow-timeline {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:16px; flex:1;
+    align-items:start;
+  }
+  .timeline-step {
+    display:flex; flex-direction:column; gap:12px;
+    padding:20px; border-radius:14px;
+    background:linear-gradient(135deg,#F8FAFF,#FAFBFF);
+    border:2px solid var(--border);
+    transition:all .4s cubic-bezier(.34,1.56,.64,1);
+    position:relative; overflow:hidden;
+    animation:cardZoomIn .6s cubic-bezier(.34,1.56,.64,1) backwards;
+  }
+  .timeline-step:nth-child(1) { animation-delay:0s; }
+  .timeline-step:nth-child(3) { animation-delay:.15s; }
+  .timeline-step:nth-child(5) { animation-delay:.3s; }
+  .timeline-step:nth-child(7) { animation-delay:.45s; }
+  @keyframes cardZoomIn {
+    from{opacity:0;transform:scale(0.8) rotateY(-20deg)}
+    to{opacity:1;transform:scale(1) rotateY(0deg)}
+  }
+  .timeline-step.active-step {
+    border-color:var(--green); background:linear-gradient(135deg,#ECFDF5,#F0FDF4);
+    box-shadow:0 8px 24px rgba(5,150,105,.2);
+    transform:translateY(-8px);
+  }
+  .timeline-step:hover {
+    transform:translateY(-4px) scale(1.02);
+    box-shadow:0 12px 32px rgba(26,86,219,.15);
+    border-color:var(--blue);
+  }
+
+  .step-number {
+    width:48px; height:48px; border-radius:12px;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    color:white; display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:800;
+    box-shadow:0 4px 12px rgba(26,86,219,.3);
+    animation:numberFlip 2s ease-in-out infinite;
+  }
+  .timeline-step:nth-child(1) .step-number { animation-delay:0s; }
+  .timeline-step:nth-child(3) .step-number { animation-delay:.2s; }
+  .timeline-step:nth-child(5) .step-number { animation-delay:.4s; }
+  .timeline-step:nth-child(7) .step-number { animation-delay:.6s; }
+  @keyframes numberFlip {
+    0%,100%{transform:rotateY(0deg)} 50%{transform:rotateY(360deg)}
+  }
+  .timeline-step.active-step .step-number {
+    background:linear-gradient(135deg,var(--green),#10B981);
+    box-shadow:0 4px 12px rgba(5,150,105,.3);
+    animation:numberGlow 1.5s ease-in-out infinite;
+  }
+  @keyframes numberGlow {
+    0%,100%{box-shadow:0 4px 12px rgba(5,150,105,.3)} 50%{box-shadow:0 8px 20px rgba(5,150,105,.5)}
+  }
+
+  .step-content {
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .step-title {
+    font-size:15px; font-weight:800; color:var(--navy);
+  }
+  .step-desc {
+    font-size:12px; color:var(--muted); font-weight:500; line-height:1.4;
+  }
+  .step-icon {
+    font-size:32px; margin-bottom:4px;
+    animation:iconWiggle 2s ease-in-out infinite;
+    display:inline-block;
+  }
+  .timeline-step:nth-child(1) .step-icon { animation-delay:0s; }
+  .timeline-step:nth-child(3) .step-icon { animation-delay:.2s; }
+  .timeline-step:nth-child(5) .step-icon { animation-delay:.4s; }
+  .timeline-step:nth-child(7) .step-icon { animation-delay:.6s; }
+  @keyframes iconWiggle {
+    0%,100%{transform:rotate(0deg)} 25%{transform:rotate(-8deg)} 75%{transform:rotate(8deg)}
+  }
+
+  .step-time {
+    font-size:13px; font-weight:800; color:var(--blue);
+    font-family:'DM Serif Display',serif;
+    background:#EFF6FF; padding:8px 12px; border-radius:8px;
+    text-align:center; animation:timePulse 2s ease-in-out infinite;
+  }
+  .timeline-step:nth-child(1) .step-time { animation-delay:0s; }
+  .timeline-step:nth-child(3) .step-time { animation-delay:.2s; }
+  .timeline-step:nth-child(5) .step-time { animation-delay:.4s; }
+  .timeline-step:nth-child(7) .step-time { animation-delay:.6s; }
+  @keyframes timePulse {
+    0%,100%{background:#EFF6FF;box-shadow:0 0 0 0 rgba(26,86,219,0)}
+    50%{background:#DBEAFE;box-shadow:0 0 0 6px rgba(26,86,219,.1)}
+  }
+  .timeline-step.active-step .step-time {
+    color:var(--green); background:#ECFDF5;
+  }
+
+  .timeline-connector {
+    display:none;
+  }
+
+  .impact-stats {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:18px;
+    padding:0 48px; margin-top:32px;
+  }
+  .impact-stat {
+    background:linear-gradient(135deg,var(--white),#FAFBFF);
+    border:2px solid var(--border); border-radius:16px; padding:24px;
+    text-align:center; transition:all .35s cubic-bezier(.4,0,.2,1);
+    animation:statSlideUp .7s cubic-bezier(.34,1.56,.64,1) backwards;
+    position:relative; overflow:hidden;
+  }
+  .impact-stat::before {
+    content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+    background:linear-gradient(135deg,rgba(26,86,219,.05),transparent);
+    opacity:0; transition:opacity .35s;
+  }
+  .impact-stat:hover::before { opacity:1; }
+  .impact-stat:nth-child(1) { animation-delay:.1s; }
+  .impact-stat:nth-child(2) { animation-delay:.25s; }
+  .impact-stat:nth-child(3) { animation-delay:.4s; }
+  .impact-stat:nth-child(4) { animation-delay:.55s; }
+  @keyframes statSlideUp {
+    from{opacity:0;transform:translateY(28px) scale(0.92)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+  .impact-stat:hover {
+    transform:translateY(-10px) scale(1.02);
+    box-shadow:0 16px 40px rgba(26,86,219,.2);
+    border-color:var(--blue);
+  }
+  .stat-icon {
+    font-family:'DM Serif Display',serif; font-size:40px; font-weight:800;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text; margin-bottom:12px;
+    animation:iconScale 2s cubic-bezier(.4,0,.2,1) infinite;
+    display:inline-block;
+  }
+  @keyframes iconScale {
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.08)}
+  }
+  .stat-label {
+    font-size:13px; color:var(--muted); font-weight:700;
+    text-transform:uppercase; letter-spacing:.04em;
+  }
+
+  /* ── SLIDE 9: STATE & CHANNEL CONFIG ─────────────────────────── */
+  .config-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; flex:1; overflow:hidden; }
+  .config-panel { display:flex; flex-direction:column; gap:10px; overflow:hidden; }
+  .config-table-wrap { flex:1; overflow:auto; border-radius:10px; border:1px solid var(--border); }
+  .config-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .config-table thead th {
+    background:var(--navy); color:rgba(255,255,255,.85); padding:9px 12px;
+    text-align:left; font-size:10px; font-weight:700; letter-spacing:.07em;
+    text-transform:uppercase; position:sticky; top:0; z-index:1;
+  }
+  .config-table tbody tr { border-bottom:1px solid #F1F5F9; transition:background .15s; }
+  .config-table tbody tr:hover { background:#F8FAFF; }
+  .config-table tbody td { padding:8px 12px; vertical-align:middle; }
+  .config-table td.editable {
+    cursor:pointer; position:relative;
+  }
+  .config-table td.editable:hover::after {
+    content:'✎'; position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    font-size:10px; color:var(--blue); opacity:.6;
+  }
+  .inline-input {
+    width:100%; border:1.5px solid var(--blue); border-radius:6px;
+    padding:4px 8px; font-size:12px; outline:none; background:#EFF6FF;
+    font-family:'DM Sans',sans-serif;
+  }
+  .toggle-pill {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;
+    cursor:pointer; border:none; transition:all .2s;
+  }
+  .toggle-on  { background:#ECFDF5; color:var(--green); border:1.5px solid #A7F3D0; }
+  .toggle-off { background:#FEF2F2; color:var(--red);   border:1.5px solid #FECACA; }
+  .changed-row { background:#FFFBEB !important; }
+  .changed-badge { font-size:9px; background:#FEF3C7; color:#92400E; padding:1px 6px; border-radius:8px; font-weight:700; }
+  .email-panel {
+    background:linear-gradient(135deg,#EFF6FF,#F0F9FF);
+    border:1.5px solid #BFDBFE; border-radius:12px; padding:16px;
+  }
+  .email-preview {
+    background:var(--white); border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; font-size:11.5px; line-height:1.7; color:var(--navy);
+    font-family:'DM Sans',sans-serif; margin-top:10px;
+  }
+  .email-header-row { display:flex; gap:8px; align-items:center; margin-bottom:4px; }
+  .email-field-label { font-size:10px; font-weight:700; color:var(--muted); min-width:32px; }
+  .email-send-btn {
+    width:100%; padding:10px; border-radius:9px; border:none; cursor:pointer;
+    font-size:13px; font-weight:700; font-family:'DM Sans',sans-serif;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    color:white; margin-top:10px; transition:all .2s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    box-shadow:0 4px 14px rgba(26,86,219,.25);
+  }
+  .email-send-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(26,86,219,.35); }
+  .email-send-btn:disabled { opacity:.5; cursor:default; transform:none; }
+  .sent-toast {
+    display:none; align-items:center; gap:8px; padding:10px 14px;
+    background:#ECFDF5; border:1.5px solid #A7F3D0; border-radius:9px;
+    font-size:12px; font-weight:600; color:var(--green); margin-top:8px;
+  }
+  .audit-entry {
+    display:flex; gap:10px; align-items:flex-start; padding:8px 10px;
+    border-radius:8px; background:var(--white); border:1px solid var(--border);
+    font-size:11px; margin-bottom:5px;
+  }
+  .audit-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+
+  /* ── SLIDE 10: OFFER CONFIG UPLOAD ───────────────────────────── */
+  .upload-layout { display:grid; grid-template-columns:300px 1fr; gap:16px; flex:1; overflow:hidden; }
+  .drop-zone {
+    border:2.5px dashed #BFDBFE; border-radius:14px; background:#EFF6FF;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; padding:24px; cursor:pointer; transition:all .25s;
+    min-height:180px; text-align:center;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color:var(--blue); background:#DBEAFE;
+    box-shadow:0 0 0 4px rgba(26,86,219,.1);
+  }
+  .drop-icon { font-size:40px; }
+  .drop-title { font-size:13px; font-weight:700; color:var(--navy); }
+  .drop-sub { font-size:11px; color:var(--muted); }
+  .sheet-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+  .sheet-tab {
+    padding:5px 12px; border-radius:7px; font-size:11px; font-weight:600;
+    border:1.5px solid var(--border); background:var(--white); cursor:pointer;
+    transition:all .2s; color:var(--muted);
+  }
+  .sheet-tab.active { background:var(--blue); color:white; border-color:var(--blue); }
+  .parsed-table-wrap { flex:1; overflow:auto; border-radius:10px; border:1px solid var(--border); }
+  .parsed-table { width:100%; border-collapse:collapse; font-size:11px; }
+  .parsed-table th { background:#1E3A5F; color:rgba(255,255,255,.85); padding:8px 10px; text-align:left; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; position:sticky; top:0; }
+  .parsed-table td { padding:7px 10px; border-bottom:1px solid #F1F5F9; }
+  .parsed-table tr:hover td { background:#F8FAFF; }
+  .upload-progress { display:flex; flex-direction:column; gap:8px; }
+  .progress-step {
+    display:flex; align-items:center; gap:10px; padding:8px 12px;
+    border-radius:8px; background:var(--white); border:1px solid var(--border);
+    font-size:12px; font-weight:600; color:var(--muted); transition:all .4s;
+  }
+  .progress-step.done { background:#ECFDF5; border-color:#A7F3D0; color:var(--green); }
+  .progress-step.running { background:#EFF6FF; border-color:#BFDBFE; color:var(--blue); }
+  .progress-step .ps-icon { font-size:16px; flex-shrink:0; }
+  .progress-step .ps-bar { flex:1; height:4px; background:#E2E8F0; border-radius:2px; overflow:hidden; }
+  .progress-step .ps-bar-fill { height:100%; background:var(--blue); border-radius:2px; width:0%; transition:width .6s; }
+  .stat-pill-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .stat-pill {
+    padding:6px 14px; border-radius:20px; font-size:12px; font-weight:700;
+    background:var(--white); border:1.5px solid var(--border);
+  }
+
+  /* ── SLIDE 11: RULE & CUTOFF BATCH MANAGER ───────────────────── */
+  .batch-layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; flex:1; overflow:hidden; }
+  .rule-form { display:flex; flex-direction:column; gap:9px; overflow-y:auto; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .form-row.single { grid-template-columns:1fr; }
+  .form-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; }
+  .form-ctrl {
+    padding:8px 10px; border-radius:8px; border:1.5px solid var(--border);
+    background:var(--white); font-size:12px; font-family:'DM Sans',sans-serif;
+    color:var(--text); outline:none; transition:border .2s; width:100%;
+  }
+  .form-ctrl:focus { border-color:var(--blue); }
+  .batch-queue { flex:1; overflow:auto; }
+  .queue-item {
+    display:flex; align-items:center; gap:10px; padding:9px 12px;
+    border-radius:9px; border:1px solid var(--border); background:var(--white);
+    margin-bottom:6px; font-size:11.5px; transition:all .3s;
+  }
+  .queue-item.pending  { border-left:4px solid var(--amber); }
+  .queue-item.success  { border-left:4px solid var(--green); background:#F0FDF4; }
+  .queue-item.error    { border-left:4px solid var(--red); background:#FEF2F2; }
+  .queue-item.running  { border-left:4px solid var(--blue); background:#EFF6FF; animation:qPulse 1s infinite; }
+  @keyframes qPulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+  .queue-badge { font-size:9px; font-weight:700; padding:2px 7px; border-radius:8px; }
+  .badge-pending { background:#FEF3C7; color:#92400E; }
+  .badge-success { background:#D1FAE5; color:#065F46; }
+  .badge-error   { background:#FEE2E2; color:#991B1B; }
+  .badge-running { background:#DBEAFE; color:#1E40AF; }
+  .batch-actions { display:flex; gap:8px; margin-bottom:10px; }
+  .action-btn {
+    flex:1; padding:9px; border-radius:9px; border:none; cursor:pointer;
+    font-size:12px; font-weight:700; font-family:'DM Sans',sans-serif;
+    transition:all .2s; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .action-btn-primary { background:var(--blue); color:white; box-shadow:0 4px 12px rgba(26,86,219,.2); }
+  .action-btn-primary:hover { background:#1D4ED8; transform:translateY(-1px); }
+  .action-btn-secondary { background:var(--white); color:var(--navy); border:1.5px solid var(--border); }
+  .action-btn-secondary:hover { background:#F8FAFF; border-color:var(--blue); }
+  .action-btn:disabled { opacity:.4; cursor:default; transform:none !important; }
+  .cutoff-matrix-mini { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .cutoff-cell {
+    padding:8px; border-radius:7px; border:1.5px solid var(--border);
+    background:var(--white); text-align:center; font-size:11px;
+  }
+  .cutoff-cell input { width:100%; border:none; text-align:center; font-size:13px; font-weight:700; color:var(--navy); background:transparent; outline:none; font-family:'DM Sans',sans-serif; }
+  .cutoff-cell .cc-label { font-size:9px; color:var(--muted); margin-bottom:3px; }
+  .result-log {
+    background:var(--navy); border-radius:10px; padding:12px 14px;
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#94A3B8;
+    flex:1; overflow-y:auto; min-height:0; line-height:1.8;
+  }
+  .log-line-ok     { color:#34D399; }
+  .log-line-err    { color:#F87171; }
+  .log-line-info   { color:#60A5FA; }
+  .log-line-warn   { color:#FBBF24; }
+
+</style>
+</head>
+<body>
+
+<div id="progress-bar" style="width:12.5%"></div>
+<div id="hint">Press ← → or click arrows to navigate</div>
+
+<div id="deck">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 1: HERO                                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide active" id="s1">
+  <div class="hero-grid">
+    <div class="hero-left">
+      <div class="hero-tag"><span></span>ADF Hackathon 2026 · FinTelligence AI</div>
+      <h1 class="hero-title">AE Rule Engine<br><em>FinTelligence AI</em></h1>
+      <p class="hero-sub">From manual Excel spreadsheets to a live, governed, AI-powered lending decisioning platform — built for Applied Data Finance.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-val" style="color:var(--green)">97%</div>
+          <div class="hero-stat-label">Faster rule cycle</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" style="color:var(--blue)">31</div>
+          <div class="hero-stat-label">Rules governed live</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" style="color:var(--purple)">8</div>
+          <div class="hero-stat-label">New spec features</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="browser-frame">
+        <div class="browser-bar">
+          <div class="browser-dots"><span></span><span></span><span></span></div>
+          <div class="browser-url">localhost:5173/offer-calculator</div>
+        </div>
+        <div class="browser-content">
+          <div class="mini-sidebar">
+            <div class="mini-sidebar-item">Dashboard</div>
+            <div class="mini-sidebar-item">Analytics</div>
+            <div class="mini-sidebar-item">Rules</div>
+            <div class="mini-sidebar-item">UW Excel → Config</div>
+            <div class="mini-section-label">✦ New Features</div>
+            <div class="mini-sidebar-item new-item active-item">Offer Calculator</div>
+            <div class="mini-sidebar-item new-item">Grade Engine</div>
+            <div class="mini-sidebar-item new-item">Conflict Detector</div>
+            <div class="mini-sidebar-item new-item">Segment Heatmap</div>
+            <div class="mini-sidebar-item new-item">Bypass Manager</div>
+            <div class="mini-sidebar-item new-item">APR Delta Editor</div>
+            <div class="mini-sidebar-item new-item">Dedup Visualiser</div>
+            <div class="mini-sidebar-item new-item">Lineage Tracer</div>
+          </div>
+          <div class="mini-content">
+            <div class="mini-offer-card">
+              <div class="mini-offer-label">MAXIMUM LOAN OFFER</div>
+              <div class="mini-offer-amount">$3,450</div>
+              <div class="mini-offer-meta">APR 99.9% · Grade C1 · Tenor 18/24mo</div>
+            </div>
+            <div class="mini-constraint binding"><span>L4</span><span>Monthly payment cap</span><span style="font-size:8px;background:var(--blue);color:white;padding:1px 5px;border-radius:4px">BINDING</span></div>
+            <div class="mini-constraint"><span>L1</span><span>Grade max $3,000</span><span>$3,000</span></div>
+            <div class="mini-constraint"><span>L2</span><span>State max TX</span><span>$10,000</span></div>
+            <div class="mini-constraint"><span>L5</span><span>10% income rule</span><span>$4,050</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 2 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s2">
+  <div class="slide-header">
+    <div class="slide-label">The Transformation</div>
+    <h2 class="slide-title">Excel chaos → one-click platform</h2>
+    <p class="slide-sub">Watch the exact workflow that was replaced</p>
+  </div>
+  <div class="story-container">
+    <div class="story-tabs">
+      <div class="story-tab active" onclick="showStory('before')">❌ Before — Manual Excel</div>
+      <div class="story-tab" onclick="showStory('after')">✅ After — FinTelligence AI</div>
+    </div>
+
+    <!-- BEFORE scene -->
+    <div class="anim-stage active" id="story-before">
+      <div class="excel-scene">
+        <!-- Excel spreadsheet -->
+        <div class="scene-card">
+          <div class="scene-card-header" style="background:#217346;color:white">
+            <div class="scene-icon" style="background:rgba(255,255,255,.2)">📊</div>
+            AE_CutoffMatrix_v47_FINAL_FINAL.xlsx
+          </div>
+          <div class="excel-grid">
+            <div class="excel-header-row">
+              <div class="excel-header-cell">Rule</div>
+              <div class="excel-header-cell">Grade</div>
+              <div class="excel-header-cell">Channel</div>
+              <div class="excel-header-cell">Cutoff</div>
+              <div class="excel-header-cell">Status</div>
+            </div>
+            <div class="excel-row">
+              <div class="excel-cell">AE_PTSMI</div><div class="excel-cell">A1</div><div class="excel-cell">QS</div>
+              <div class="excel-cell">500</div><div class="excel-cell">✓</div>
+            </div>
+            <div class="excel-row" id="ex-changed-row">
+              <div class="excel-cell">AE_CV_SCORE</div><div class="excel-cell">B1</div><div class="excel-cell">ML</div>
+              <div class="excel-cell changed" id="ex-cell">585</div><div class="excel-cell">⚠️</div>
+            </div>
+            <div class="excel-row" style="background:#FEF2F2;border-left:3px solid var(--red)">
+              <div class="excel-cell">AE_RISK</div><div class="excel-cell">C1</div><div class="excel-cell">LT</div>
+              <div class="excel-cell changed">620</div><div class="excel-cell">❌</div>
+            </div>
+            <div class="excel-row" style="background:#FEF2F2;border-left:3px solid var(--red)">
+              <div class="excel-cell">AE_THIN_FILE</div><div class="excel-cell">D1</div><div class="excel-cell">ALL</div>
+              <div class="excel-cell changed">3</div><div class="excel-cell">❌</div>
+            </div>
+            <div class="excel-row" style="background:#FEF2F2;border-left:3px solid var(--red)">
+              <div class="excel-cell">AE_DEDUP</div><div class="excel-cell">E1</div><div class="excel-cell">QS</div>
+              <div class="excel-cell changed">30d</div><div class="excel-cell">❌</div>
+            </div>
+            <div class="excel-row">
+              <div class="excel-cell">AE_LTI</div><div class="excel-cell">E1</div><div class="excel-cell">MO</div>
+              <div class="excel-cell">0.45</div><div class="excel-cell">✓</div>
+            </div>
+          </div>
+          <div style="padding:10px 12px;font-size:10px;color:#7C2D12;background:#FFFBEB;border-top:1px solid #FDE68A">
+            <div style="font-weight:700;margin-bottom:4px">⚠ Business Pain Points:</div>
+            <div>• <strong>No Audit Trail</strong>: Changed by Sarah (585) — who? when? why?</div>
+            <div>• <strong>Conflict Detection</strong>: 620 conflicts with spec (650 required)</div>
+            <div>• <strong>Manual Dedup Logic</strong>: 30d rule unclear, no visualization</div>
+            <div>• <strong>No Governance</strong>: Outdated values (3 vs 5), no enforcement</div>
+            <div>• <strong>Manual APR Grid</strong>: No inline editing, error-prone</div>
+          </div>
+        </div>
+
+        <!-- Timeline arrow -->
+        <div class="timeline-arrow">
+          <div style="font-size:11px;color:var(--red);font-weight:700;text-align:center">TOTAL<br>TIME</div>
+          <div class="total-time-badge">72h</div>
+          <div style="font-size:18px">↕</div>
+        </div>
+
+        <!-- People workflow -->
+        <div class="scene-card" style="overflow:auto">
+          <div class="scene-card-header" style="background:#FEF2F2;color:var(--red)">
+            <div class="scene-icon" style="background:#FECACA">🔄</div>
+            Manual Approval Workflow
+          </div>
+          <div class="people-flow" id="people-flow">
+            <div class="person-step" id="ps1">
+              <div class="person-avatar" style="background:#DBEAFE">👩‍💼</div>
+              <div class="step-info">
+                <div class="step-title">Sarah (UW Analyst) edits Excel</div>
+                <div class="step-time">Changes cutoff 500 → 585 in cell B4</div>
+              </div>
+              <span class="step-badge badge-warn">0h</span>
+            </div>
+            <div class="person-step" id="ps2">
+              <div class="person-avatar" style="background:#FCE7F3">📧</div>
+              <div class="step-info">
+                <div class="step-title">Email sent to Manager John</div>
+                <div class="step-time">Attach Excel, explain change, wait...</div>
+              </div>
+              <span class="step-badge badge-warn">+2h</span>
+            </div>
+            <div class="person-step" id="ps3">
+              <div class="person-avatar" style="background:#FEF3C7">👨‍💼</div>
+              <div class="step-info">
+                <div class="step-title">John reviews, approves via reply-all</div>
+                <div class="step-time">Opens Excel, checks, sends email back</div>
+              </div>
+              <span class="step-badge badge-warn">+24h</span>
+            </div>
+            <div class="person-step" id="ps4">
+              <div class="person-avatar" style="background:#EDE9FE">👨‍💻</div>
+              <div class="step-info">
+                <div class="step-title">Dev Raj manually updates config</div>
+                <div class="step-time">Edits application.properties, builds JAR</div>
+              </div>
+              <span class="step-badge badge-warn">+48h</span>
+            </div>
+            <div class="person-step" id="ps5">
+              <div class="person-avatar" style="background:#DCFCE7">🚀</div>
+              <div class="step-info">
+                <div class="step-title">Raj deploys to production</div>
+                <div class="step-time">Runs deploy script, crosses fingers 🤞</div>
+              </div>
+              <span class="step-badge badge-danger">+72h</span>
+            </div>
+            <div class="person-step" id="ps6" style="border-color:#FECACA;background:#FEF2F2">
+              <div class="person-avatar" style="background:#FECACA">💥</div>
+              <div class="step-info">
+                <div class="step-title">Conflict found in production!</div>
+                <div class="step-time">No audit trail. Who changed what? Start over.</div>
+              </div>
+              <span class="step-badge badge-danger">+?h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER scene -->
+    <div class="anim-stage" id="story-after">
+      <div class="excel-scene">
+        <!-- Platform UI -->
+        <div class="scene-card" style="overflow:hidden">
+          <div class="scene-card-header" style="background:linear-gradient(135deg,#1A56DB,#0891B2);color:white">
+            <div class="scene-icon" style="background:rgba(255,255,255,.2)">🖥</div>
+            FinTelligence AI — Cutoff Tracker
+          </div>
+          <div style="padding:10px;display:flex;flex-direction:column;gap:6px;height:calc(100% - 44px);overflow:auto">
+            <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:10px 12px">
+              <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">AE_CV_SCORE Cutoff — Grade B1 · Channel ML</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div>
+                  <div style="font-size:9px;color:var(--muted)">Current</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--red);text-decoration:line-through">500</div>
+                </div>
+                <div style="font-size:18px;color:var(--blue)">→</div>
+                <div>
+                  <div style="font-size:9px;color:var(--muted)">New Value</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--green)">585</div>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:9px;color:var(--muted);padding:0 2px">Submitted by: lead-analyst · Session: UW_INGESTION_MAY2026</div>
+            <div id="deploy-steps" class="deploy-steps">
+              <div class="deploy-step" id="ds1"><span class="step-icon">✏️</span> Analyst enters new cutoff value <span class="deploy-time" style="color:var(--green)">0 min</span></div>
+              <div class="deploy-step" id="ds2"><span class="step-icon">🔍</span> Conflict scan runs automatically <span class="deploy-time">—</span></div>
+              <div class="deploy-step" id="ds3"><span class="step-icon">✅</span> Manager approves in-app (1 click) <span class="deploy-time">—</span></div>
+              <div class="deploy-step" id="ds4"><span class="step-icon">⚡</span> Promoted to TEST environment <span class="deploy-time">—</span></div>
+              <div class="deploy-step" id="ds5"><span class="step-icon">🚀</span> Live in PROD — lineage recorded <span class="deploy-time">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Arrow + time -->
+        <div class="timeline-arrow">
+          <div style="font-size:11px;color:var(--green);font-weight:700;text-align:center">TOTAL<br>TIME</div>
+          <div style="font-size:22px;font-weight:800;color:var(--green);font-family:'DM Serif Display',serif;background:#ECFDF5;border:2px solid #A7F3D0;border-radius:10px;padding:4px 12px;text-align:center">12<br><span style="font-size:13px">min</span></div>
+          <div style="font-size:12px;font-weight:700;color:var(--green);background:#ECFDF5;padding:3px 8px;border-radius:10px">99% faster</div>
+        </div>
+
+        <!-- Click to animate -->
+        <div id="click-zone" class="platform-click-zone" onclick="runAfterAnimation()">
+          <div class="big-click-btn" id="click-btn">⚡</div>
+          <div class="click-label">Click to deploy!</div>
+          <div class="click-sub">Watch FinTelligence AI handle the<br>entire workflow in seconds</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 3 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s3">
+  <div class="slide-header">
+    <div class="slide-label">Analytics Dashboard</div>
+    <h2 class="slide-title">Live metrics — governance, velocity, coverage</h2>
+    <p class="slide-sub">Real-time data from the platform — all charts are interactive</p>
+  </div>
+  <div class="slide-body" style="flex-direction:column;gap:14px">
+    <div class="charts-grid" id="charts-grid">
+      <!-- Governance bar -->
+      <div class="chart-card wide">
+        <div class="chart-title">Governance Score Trajectory</div>
+        <div class="chart-subtitle">Weekly % of rules approved (0% → 100% in 6 weeks)</div>
+        <div class="chart-wrap"><canvas id="govChart"></canvas></div>
+      </div>
+      <!-- Approval donut -->
+      <div class="chart-card">
+        <div class="chart-title">Rule Status Distribution</div>
+        <div class="chart-subtitle">31 rules across all statuses</div>
+        <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+      </div>
+      <!-- Cycle time comparison -->
+      <div class="chart-card wide">
+        <div class="chart-title">Cycle Time Comparison — Before vs After</div>
+        <div class="chart-subtitle">Hours to complete each workflow step</div>
+        <div class="chart-wrap"><canvas id="cycleChart"></canvas></div>
+      </div>
+      <!-- Phase distribution -->
+      <div class="chart-card">
+        <div class="chart-title">Rules by AE Phase</div>
+        <div class="chart-subtitle">Before data pull / TU pull / Credit grade</div>
+        <div class="chart-wrap"><canvas id="phaseChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 4 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s4">
+  <div class="slide-header">
+    <div class="slide-label">Feature 1</div>
+    <h2 class="slide-title">Live Offer Calculator</h2>
+    <p class="slide-sub">Exact L1–L7 spec formula running live in the browser — try it now</p>
+  </div>
+  <div class="slide-body">
+    <div class="calculator-layout">
+      <!-- Inputs -->
+      <div class="card calc-inputs">
+        <div class="card-title">Applicant Inputs</div>
+        <div class="input-group">
+          <label class="input-label">Credit Grade</label>
+          <select class="input-select" id="calc-grade" onchange="calcOffer()">
+            <option value="A1">A1</option><option value="A2">A2</option>
+            <option value="B1">B1</option><option value="B2">B2</option>
+            <option value="C1" selected>C1</option><option value="C2">C2</option>
+            <option value="D1">D1</option><option value="D2">D2</option>
+            <option value="E1">E1</option><option value="E2">E2</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label">State</label>
+          <select class="input-select" id="calc-state" onchange="calcOffer()">
+            <option value="TX" selected>TX — Texas</option>
+            <option value="FL">FL — Florida</option>
+            <option value="CA">CA — California</option>
+            <option value="NY">NY — New York</option>
+            <option value="VA">VA — Virginia</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Channel</label>
+          <select class="input-select" id="calc-channel" onchange="calcOffer()">
+            <option value="QS" selected>QS</option><option value="ML">ML</option>
+            <option value="MO">MO</option><option value="LT">LT</option>
+            <option value="CMPQ">CMPQ</option><option value="CKPQ">CKPQ</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Requested Amount ($)</label>
+          <input class="input-field" id="calc-amount" type="number" value="5000" min="1000" max="15000" oninput="calcOffer()"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Monthly Income ($)</label>
+          <input class="input-field" id="calc-income" type="number" value="4500" oninput="calcOffer()"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Fixed Obligations ($/mo)</label>
+          <input class="input-field" id="calc-obligations" type="number" value="0" oninput="calcOffer()"/>
+        </div>
+        <button class="calc-btn" onclick="calcOffer()">⚡ Calculate Offer</button>
+      </div>
+
+      <!-- Result -->
+      <div class="card calc-result">
+        <div id="offer-display">
+          <div class="offer-card" id="offer-card">
+            <div style="font-size:10px;opacity:.7;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">Maximum Loan Offer</div>
+            <div class="offer-amount" id="offer-amount">$3,450</div>
+            <div class="offer-meta" id="offer-meta">Finance Amount: $3,638 · Orig Fee: $188</div>
+            <div class="offer-pills" id="offer-pills">
+              <span class="offer-pill" id="pill-apr">APR 99.9%</span>
+              <span class="offer-pill" id="pill-grade">Grade C1</span>
+              <span class="offer-pill" id="pill-tenor">Tenor 18/24mo</span>
+              <span class="offer-pill" id="pill-seg">Segment: Others</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-title" style="margin-top:4px">L1–L7 Constraint Waterfall</div>
+        <div id="l-constraints" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+
+      <!-- Payment table -->
+      <div class="card" style="overflow:auto">
+        <div class="card-title">Payment Breakdown</div>
+        <table class="payment-table" id="payment-table">
+          <thead>
+            <tr><th>Tenor</th><th>Monthly Pmt</th><th>Total Cost</th><th>APR</th></tr>
+          </thead>
+          <tbody id="payment-tbody"></tbody>
+        </table>
+        <div style="margin-top:16px">
+          <div class="card-title">Payment Cap Logic</div>
+          <div id="cap-info" style="font-size:12px;color:var(--slate);line-height:1.8"></div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="card-title">Segment Flag</div>
+          <div id="seg-flag" style="font-size:13px;font-weight:700"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 5 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s5">
+  <div class="slide-header">
+    <div class="slide-label">Feature 2</div>
+    <h2 class="slide-title">Credit Grade Assignment Engine</h2>
+    <p class="slide-sub">Two-score IB matrix: V11_ADF_Score × V11_Market_Score → final grade</p>
+  </div>
+  <div class="slide-body">
+    <div class="grade-layout">
+      <div class="grade-left">
+        <!-- Score inputs -->
+        <div class="card" style="flex-shrink:0">
+          <div class="card-title">Score Inputs</div>
+          <div class="score-inputs">
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">Vantage Score</div>
+              <input class="input-field" id="g-vantage" type="number" value="720" min="500" max="999" oninput="runGrade()"/>
+              <div class="score-box-result" id="g-eb-result">→ EB2</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">V11_ADF_Score</div>
+              <input class="input-field" id="g-adf" type="number" value="830" min="0" max="999" oninput="runGrade()"/>
+              <div class="score-box-result" id="g-adf-result">→ IB4 (row)</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">V11_Market_Score</div>
+              <input class="input-field" id="g-market" type="number" value="810" min="0" max="999" oninput="runGrade()"/>
+              <div class="score-box-result" id="g-mkt-result">→ Col 4</div>
+            </div>
+          </div>
+        </div>
+        <!-- Matrix -->
+        <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <div class="card-title">10×10 IB Matrix (ADF row × Market col)</div>
+          <div class="ib-matrix-wrap" id="ib-matrix-wrap"></div>
+        </div>
+      </div>
+      <div class="grade-right">
+        <!-- Grade flow + channel -->
+        <div class="card" style="flex-shrink:0">
+          <div class="card-title">Adjustment Inputs</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Channel</div>
+              <select class="input-select" id="g-channel" onchange="runGrade()">
+                <option value="QS" selected>QS</option><option value="ML">ML</option>
+                <option value="MO">MO</option><option value="LT">LT</option>
+                <option value="CMPQ">CMPQ</option><option value="CKPQ">CKPQ</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">State</div>
+              <select class="input-select" id="g-state" onchange="runGrade()">
+                <option value="TX" selected>TX</option><option value="VA">VA</option><option value="FL">FL</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Purpose</div>
+              <select class="input-select" id="g-purpose" onchange="runGrade()">
+                <option>Personal</option><option>Debt Consolidation</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">AT01S Count</div>
+              <input class="input-field" id="g-at01s" type="number" value="8" min="0" max="20" oninput="runGrade()"/>
+            </div>
+          </div>
+        </div>
+        <!-- Grade steps -->
+        <div class="card" style="flex:1;overflow:auto">
+          <div class="card-title">Grade Assignment Steps</div>
+          <div class="grade-flow" id="grade-flow"></div>
+          <div id="final-grade-banner" class="final-grade-banner" style="margin-top:12px">
+            <div class="final-grade-big" id="final-grade-big">C1</div>
+            <div>
+              <div style="font-size:13px;font-weight:700">Final Credit Grade</div>
+              <div style="font-size:11px;opacity:.8;margin-top:3px" id="grade-segment-flag">Segment: Others</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 6 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s6">
+  <div class="slide-header">
+    <div class="slide-label">Feature 3</div>
+    <h2 class="slide-title">State &amp; Channel Configuration</h2>
+    <p class="slide-sub">Edit constraints inline — every save triggers an approval email to the configured approver</p>
+  </div>
+  <div class="slide-body">
+    <div class="config-grid">
+
+      <!-- LEFT: State Config table -->
+      <div class="config-panel">
+        <div class="card" style="flex-shrink:0;padding:12px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="card-title" style="margin:0">State Configuration</div>
+            <div style="display:flex;gap:6px">
+              <span id="state-changed-count" style="font-size:11px;font-weight:700;color:var(--amber);display:none">0 unsaved</span>
+              <button class="action-btn action-btn-secondary" style="padding:5px 12px;font-size:11px;flex:unset" onclick="resetStateChanges()">Reset</button>
+              <button class="action-btn action-btn-primary" style="padding:5px 12px;font-size:11px;flex:unset" onclick="saveStateConfig()">Save &amp; Notify ✉</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div><div class="form-label">Filter State</div><input class="form-ctrl" id="state-filter" placeholder="e.g. TX" oninput="filterStates()"/></div>
+            <div><div class="form-label">Filter Status</div>
+              <select class="form-ctrl" id="state-status-filter" onchange="filterStates()">
+                <option value="">All</option><option value="ON">Active</option><option value="OFF">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="config-table-wrap">
+          <table class="config-table">
+            <thead><tr><th>State</th><th>Status</th><th>Min Loan</th><th>Max Loan</th><th>Max APR%</th><th>Changed</th></tr></thead>
+            <tbody id="state-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT: Channel config + email panel -->
+      <div class="config-panel">
+        <div class="card" style="flex-shrink:0;padding:12px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="card-title" style="margin:0">Channel Configuration</div>
+            <button class="action-btn action-btn-primary" style="padding:5px 12px;font-size:11px;flex:unset" onclick="saveChannelConfig()">Save &amp; Notify ✉</button>
+          </div>
+          <div class="config-table-wrap" style="max-height:190px">
+            <table class="config-table">
+              <thead><tr><th>Channel</th><th>Max Loan</th><th>Min Loan</th><th>Active States</th><th>Status</th></tr></thead>
+              <tbody id="channel-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Email notification panel -->
+        <div class="email-panel">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:18px">✉️</span>
+            <div style="font-size:13px;font-weight:700;color:var(--navy)">Approval Email — Auto-generated on Save</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><div class="form-label">Approver Email</div><input class="form-ctrl" id="approver-email" value="manager.john@adf.com"/></div>
+            <div><div class="form-label">CC</div><input class="form-ctrl" id="cc-email" value="compliance@adf.com"/></div>
+          </div>
+          <div class="email-preview" id="email-preview">
+            <div class="email-header-row"><span class="email-field-label">From:</span><span>fintelligence-ai@adf.com</span></div>
+            <div class="email-header-row"><span class="email-field-label">To:</span><span id="ep-to">manager.john@adf.com</span></div>
+            <div class="email-header-row"><span class="email-field-label">Sub:</span><span id="ep-sub" style="font-weight:700">[ACTION REQUIRED] State Config change — TX, FL, VA</span></div>
+            <hr style="border:none;border-top:1px solid #E2E8F0;margin:8px 0"/>
+            <div id="ep-body">Hi John,<br><br>The following state configuration changes have been submitted for your approval:<br><br>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px">• TX — Max Loan: $10,000 → $12,000<br>• FL — Status: ON → OFF<br>• VA — Min Loan: $1,000 → $1,500</span><br><br>
+              Please review and approve in the FinTelligence AI platform.<br><br>Submitted by: lead-analyst<br>Session: CONFIG_MAY2026
+            </div>
+          </div>
+          <button class="email-send-btn" id="send-email-btn" onclick="sendApprovalEmail()">
+            <span id="send-btn-text">⚡ Send Approval Request</span>
+          </button>
+          <div class="sent-toast" id="sent-toast">✅ Email sent to <span id="toast-recipient"></span> — awaiting approval</div>
+        </div>
+
+        <!-- Audit trail -->
+        <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px">
+          <div class="card-title">Recent Config Changes — Audit Trail</div>
+          <div style="flex:1;overflow-y:auto" id="config-audit-log">
+            <div class="audit-entry"><div class="audit-dot" style="background:var(--green)"></div><div><strong>TX Max Loan</strong> changed $10,000 → $12,000 by lead-analyst · 2 min ago</div></div>
+            <div class="audit-entry"><div class="audit-dot" style="background:var(--amber)"></div><div><strong>FL Status</strong> ON → OFF — pending approval from manager.john@adf.com</div></div>
+            <div class="audit-entry"><div class="audit-dot" style="background:var(--blue)"></div><div><strong>QS Max Loan</strong> $10,000 → $15,000 approved by manager.john@adf.com · 1h ago</div></div>
+            <div class="audit-entry"><div class="audit-dot" style="background:var(--green)"></div><div><strong>MO Status</strong> OFF → ON promoted to PROD · 3h ago</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 7 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s7">
+  <div class="slide-header">
+    <div class="slide-label">Feature 4</div>
+    <h2 class="slide-title">Offer Config Excel Upload</h2>
+    <p class="slide-sub">Drop SimplifiedOfferLogicSampleConfig.xlsx — parsed into EB bands, IB bands, grade matrix, offers and tenors automatically</p>
+  </div>
+  <div class="slide-body">
+    <div class="upload-layout">
+
+      <!-- Left: upload + controls -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="drop-zone" id="drop-zone"
+             ondragover="event.preventDefault();this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleDrop(event)"
+             onclick="document.getElementById('file-input').click()">
+          <div class="drop-icon" id="drop-icon">📊</div>
+          <div class="drop-title" id="drop-title">Drop Excel Config Here</div>
+          <div class="drop-sub" id="drop-sub">or click to browse<br>Parses MAIN + OFFER_CONFIG sheets</div>
+          <div class="sheet-tabs" id="sheet-tags" style="justify-content:center">
+            <span class="sheet-tab" style="pointer-events:none">External Bands</span>
+            <span class="sheet-tab" style="pointer-events:none">Internal Bands</span>
+            <span class="sheet-tab" style="pointer-events:none">Grade Matrix</span>
+            <span class="sheet-tab" style="pointer-events:none">Grade Offers</span>
+            <span class="sheet-tab" style="pointer-events:none">Tenor Options</span>
+          </div>
+          <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(event)"/>
+        </div>
+
+        <!-- Parse progress -->
+        <div class="upload-progress" id="upload-progress">
+          <div class="progress-step" id="up1"><span class="ps-icon">📁</span><span style="flex:1">Read Excel file</span><div class="ps-bar"><div class="ps-bar-fill" id="upb1"></div></div></div>
+          <div class="progress-step" id="up2"><span class="ps-icon">🔍</span><span style="flex:1">Parse sheet structure</span><div class="ps-bar"><div class="ps-bar-fill" id="upb2"></div></div></div>
+          <div class="progress-step" id="up3"><span class="ps-icon">📊</span><span style="flex:1">Extract EB / IB bands</span><div class="ps-bar"><div class="ps-bar-fill" id="upb3"></div></div></div>
+          <div class="progress-step" id="up4"><span class="ps-icon">🎯</span><span style="flex:1">Build grade matrix</span><div class="ps-bar"><div class="ps-bar-fill" id="upb4"></div></div></div>
+          <div class="progress-step" id="up5"><span class="ps-icon">💰</span><span style="flex:1">Load offer + tenor tables</span><div class="ps-bar"><div class="ps-bar-fill" id="upb5"></div></div></div>
+          <div class="progress-step" id="up6"><span class="ps-icon">✅</span><span style="flex:1">Commit to database</span><div class="ps-bar"><div class="ps-bar-fill" id="upb6"></div></div></div>
+        </div>
+
+        <!-- Stats after parse -->
+        <div class="card" style="padding:12px 14px">
+          <div class="card-title">Parse Summary</div>
+          <div class="stat-pill-row" id="parse-stats">
+            <span class="stat-pill" style="color:var(--blue)">5 sheets</span>
+            <span class="stat-pill" style="color:var(--green)">5 EB bands</span>
+            <span class="stat-pill" style="color:var(--purple)">10 IB bands</span>
+            <span class="stat-pill" style="color:var(--amber)">50 grade cells</span>
+            <span class="stat-pill" style="color:var(--cyan)">10 offer rows</span>
+            <span class="stat-pill" style="color:var(--navy)">6 tenor configs</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px" id="parse-msg">Upload an Excel file to see live parsing results</div>
+        </div>
+      </div>
+
+      <!-- Right: parsed data view with tabs -->
+      <div style="display:flex;flex-direction:column;gap:10px;overflow:hidden">
+        <div class="card" style="flex-shrink:0;padding:12px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="card-title" style="margin:0">Parsed Data Preview</div>
+            <div class="sheet-tabs" id="preview-tabs">
+              <div class="sheet-tab active" onclick="showSheet('eb')">EB Bands</div>
+              <div class="sheet-tab" onclick="showSheet('ib')">IB Bands</div>
+              <div class="sheet-tab" onclick="showSheet('matrix')">Grade Matrix</div>
+              <div class="sheet-tab" onclick="showSheet('offers')">Offers</div>
+              <div class="sheet-tab" onclick="showSheet('tenors')">Tenors</div>
+            </div>
+          </div>
+        </div>
+        <div class="parsed-table-wrap" style="flex:1">
+          <div id="sheet-eb" class="sheet-view">
+            <table class="parsed-table">
+              <thead><tr><th>External Band</th><th>Vantage Score Min</th><th>Vantage Score Max</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><strong style="color:var(--green)">EB1</strong></td><td>761</td><td>999</td><td>Excellent credit</td></tr>
+                <tr><td><strong style="color:var(--cyan)">EB2</strong></td><td>681</td><td>760</td><td>Very good credit</td></tr>
+                <tr><td><strong style="color:var(--amber)">EB3</strong></td><td>621</td><td>680</td><td>Good credit</td></tr>
+                <tr><td><strong style="color:var(--amber)">EB4</strong></td><td>581</td><td>620</td><td>Fair credit</td></tr>
+                <tr><td><strong style="color:var(--red)">EB5</strong></td><td>500</td><td>580</td><td>Poor credit</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="sheet-ib" class="sheet-view" style="display:none">
+            <table class="parsed-table">
+              <thead><tr><th>Internal Band</th><th>ADF Score Min</th><th>ADF Score Max</th><th>Market Score Min</th><th>Market Score Max</th></tr></thead>
+              <tbody id="ib-preview-body">
+                <tr><td><strong style="color:var(--green)">IB1</strong></td><td>891</td><td>999</td><td>891</td><td>999</td></tr>
+                <tr><td><strong style="color:var(--green)">IB2</strong></td><td>868</td><td>890</td><td>868</td><td>890</td></tr>
+                <tr><td><strong style="color:var(--cyan)">IB3</strong></td><td>845</td><td>867</td><td>845</td><td>867</td></tr>
+                <tr><td><strong style="color:var(--cyan)">IB4</strong></td><td>820</td><td>844</td><td>820</td><td>844</td></tr>
+                <tr><td><strong style="color:var(--amber)">IB5</strong></td><td>796</td><td>819</td><td>796</td><td>819</td></tr>
+                <tr><td><strong style="color:var(--amber)">IB6</strong></td><td>770</td><td>795</td><td>770</td><td>795</td></tr>
+                <tr><td><strong style="color:var(--amber)">IB7</strong></td><td>742</td><td>769</td><td>742</td><td>769</td></tr>
+                <tr><td><strong style="color:var(--red)">IB8</strong></td><td>703</td><td>741</td><td>703</td><td>741</td></tr>
+                <tr><td><strong style="color:var(--red)">IB9</strong></td><td>647</td><td>702</td><td>647</td><td>702</td></tr>
+                <tr><td><strong style="color:var(--red)">IB10</strong></td><td>0</td><td>646</td><td>0</td><td>646</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="sheet-matrix" class="sheet-view" style="display:none">
+            <table class="parsed-table">
+              <thead><tr><th>EB \ IB</th><th>IB1</th><th>IB2</th><th>IB3</th><th>IB4</th><th>IB5</th><th>IB6</th><th>IB7</th><th>IB8</th><th>IB9</th><th>IB10</th></tr></thead>
+              <tbody>
+                <tr><td><strong>EB1</strong></td><td style="color:var(--green)">A1</td><td style="color:var(--green)">A2</td><td style="color:var(--green)">B1</td><td style="color:var(--cyan)">B2</td><td style="color:var(--cyan)">C1</td><td style="color:var(--amber)">C2</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td></tr>
+                <tr><td><strong>EB2</strong></td><td style="color:var(--green)">B1</td><td style="color:var(--green)">B2</td><td style="color:var(--cyan)">C1</td><td style="color:var(--cyan)">C2</td><td style="color:var(--amber)">D1</td><td style="color:var(--amber)">D2</td><td style="color:var(--red)">E1</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td></tr>
+                <tr><td><strong>EB3</strong></td><td style="color:var(--green)">B2</td><td style="color:var(--cyan)">C1</td><td style="color:var(--cyan)">C1</td><td style="color:var(--cyan)">C2</td><td style="color:var(--amber)">D1</td><td style="color:var(--amber)">D2</td><td style="color:var(--red)">E1</td><td style="color:var(--red)">E2</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td></tr>
+                <tr><td><strong>EB4</strong></td><td style="color:var(--cyan)">C1</td><td style="color:var(--cyan)">C2</td><td style="color:var(--cyan)">C2</td><td style="color:var(--amber)">D1</td><td style="color:var(--amber)">D1</td><td style="color:var(--amber)">D2</td><td style="color:var(--red)">E1</td><td style="color:var(--red)">E2</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td></tr>
+                <tr><td><strong>EB5</strong></td><td style="color:var(--amber)">D1</td><td style="color:var(--amber)">D1</td><td style="color:var(--amber)">D2</td><td style="color:var(--amber)">D2</td><td style="color:var(--red)">E1</td><td style="color:var(--red)">E1</td><td style="color:var(--red)">E2</td><td style="color:var(--red)">E2</td><td style="color:var(--red)">F</td><td style="color:var(--red)">F</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="sheet-offers" class="sheet-view" style="display:none">
+            <table class="parsed-table">
+              <thead><tr><th>Grade</th><th>Max Loan</th><th>Max Tenor</th><th>Min APR%</th><th>Max Monthly Pmt</th><th>Orig Fee%</th></tr></thead>
+              <tbody>
+                <tr><td><strong style="color:var(--green)">A1</strong></td><td>$6,000</td><td>36mo</td><td>59.9%</td><td>$300</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--green)">A2</strong></td><td>$5,000</td><td>36mo</td><td>69.9%</td><td>$275</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--cyan)">B1</strong></td><td>$4,000</td><td>24mo</td><td>79.9%</td><td>$150</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--cyan)">B2</strong></td><td>$3,500</td><td>24mo</td><td>89.9%</td><td>$150</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--amber)">C1</strong></td><td>$3,000</td><td>24mo</td><td>99.9%</td><td>$150</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--amber)">C2</strong></td><td>$2,500</td><td>24mo</td><td>110%</td><td>$150</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--red)">D1</strong></td><td>$2,000</td><td>18mo</td><td>120%</td><td>$100</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--red)">D2</strong></td><td>$1,500</td><td>18mo</td><td>135%</td><td>$100</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--red)">E1</strong></td><td>$1,250</td><td>18mo</td><td>149%</td><td>$100</td><td>5.49%</td></tr>
+                <tr><td><strong style="color:var(--red)">E2</strong></td><td>$1,000</td><td>12mo</td><td>169%</td><td>$100</td><td>5.49%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="sheet-tenors" class="sheet-view" style="display:none">
+            <table class="parsed-table">
+              <thead><tr><th>Loan Amount Range</th><th>Tenor Options</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td>$500 – $999</td><td><strong>12, 18 mo</strong></td><td>Small loan short terms</td></tr>
+                <tr><td>$1,000 – $1,999</td><td><strong>12, 18 mo</strong></td><td>Standard small</td></tr>
+                <tr><td>$2,000 – $2,999</td><td><strong>18, 24 mo</strong></td><td>Mid range</td></tr>
+                <tr><td>$3,000 – $3,999</td><td><strong>18, 24 mo</strong></td><td>Mid range extended</td></tr>
+                <tr><td>$4,000 – $4,999</td><td><strong>24, 36 mo</strong></td><td>Larger loans</td></tr>
+                <tr><td>$5,000+</td><td><strong>24, 36 mo</strong></td><td>Max tenor eligible</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Commit bar -->
+        <div class="card" style="flex-shrink:0;padding:12px 16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:700;color:var(--navy)" id="commit-title">Ready to simulate an upload</div>
+              <div style="font-size:11px;color:var(--muted)" id="commit-sub">Click "Simulate Upload" to watch the full parse + commit pipeline</div>
+            </div>
+            <button class="action-btn action-btn-secondary" style="flex:unset;padding:8px 16px" onclick="resetUpload()">Reset</button>
+            <button class="action-btn action-btn-primary" id="simulate-btn" style="flex:unset;padding:8px 16px" onclick="simulateUpload()">▶ Simulate Upload</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 8 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s8">
+  <div class="slide-header">
+    <div class="slide-label">Feature 5</div>
+    <h2 class="slide-title">Rule &amp; Cutoff Batch Manager</h2>
+    <p class="slide-sub">Add single rules or batch-submit multiple rules and cutoffs — automated validation, conflict check, and commit</p>
+  </div>
+  <div class="slide-body">
+    <div class="batch-layout">
+
+      <!-- Left: Form -->
+      <div style="display:flex;flex-direction:column;gap:10px;overflow:hidden">
+
+        <!-- Mode toggle -->
+        <div class="card" style="padding:10px 14px;flex-shrink:0">
+          <div style="display:flex;gap:6px">
+            <button class="action-btn action-btn-primary" id="mode-single" style="flex:unset;padding:6px 16px;font-size:11px" onclick="setMode('single')">Single Rule / Cutoff</button>
+            <button class="action-btn action-btn-secondary" id="mode-batch"  style="flex:unset;padding:6px 16px;font-size:11px" onclick="setMode('batch')">Batch Import (CSV paste)</button>
+          </div>
+        </div>
+
+        <!-- Single form -->
+        <div class="card" style="padding:14px 16px;flex-shrink:0" id="single-form">
+          <div class="card-title">Single Rule / Cutoff Entry</div>
+          <div class="rule-form">
+            <div class="form-row">
+              <div><div class="form-label">Entry Type</div>
+                <select class="form-ctrl" id="entry-type" onchange="toggleEntryType()">
+                  <option value="rule">Rule</option>
+                  <option value="cutoff">Cutoff</option>
+                </select>
+              </div>
+              <div><div class="form-label">Rule ID</div><input class="form-ctrl" id="rule-id" placeholder="e.g. AE_PTSMI" value="AE_NEW_RULE"/></div>
+            </div>
+            <div id="rule-fields">
+              <div class="form-row">
+                <div><div class="form-label">Phase</div>
+                  <select class="form-ctrl" id="rule-phase">
+                    <option>Before Data Pull</option><option>TU Pull</option><option>Credit Grade</option>
+                  </select>
+                </div>
+                <div><div class="form-label">Segment</div>
+                  <select class="form-ctrl" id="rule-segment">
+                    <option>All</option><option>QS</option><option>ML</option><option>MO</option><option>LT</option><option>E1/E2</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div><div class="form-label">Operator</div>
+                  <select class="form-ctrl" id="rule-operator">
+                    <option>&gt;=</option><option>&gt;</option><option>&lt;=</option><option>&lt;</option><option>=</option><option>IN</option>
+                  </select>
+                </div>
+                <div><div class="form-label">Cutoff Value</div><input class="form-ctrl" id="rule-cutoff" type="number" placeholder="e.g. 500" value="580"/></div>
+              </div>
+              <div class="form-row single">
+                <div><div class="form-label">Description</div><input class="form-ctrl" id="rule-desc" placeholder="Rule description..." value="New credit score floor for QS channel"/></div>
+              </div>
+            </div>
+            <div id="cutoff-fields" style="display:none">
+              <div class="form-row">
+                <div><div class="form-label">Grade</div>
+                  <select class="form-ctrl" id="co-grade"><option>A1</option><option>B1</option><option selected>C1</option><option>D1</option><option>E1</option></select>
+                </div>
+                <div><div class="form-label">Channel</div>
+                  <select class="form-ctrl" id="co-channel"><option>QS</option><option>ML</option><option>MO</option><option>All</option></select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div><div class="form-label">State</div>
+                  <select class="form-ctrl" id="co-state"><option>All</option><option>TX</option><option>FL</option><option>VA</option></select>
+                </div>
+                <div><div class="form-label">Cutoff Value</div><input class="form-ctrl" id="co-value" type="number" value="585"/></div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div><div class="form-label">Submitted By</div><input class="form-ctrl" id="submitted-by" value="lead-analyst"/></div>
+              <div><div class="form-label">Environment</div>
+                <select class="form-ctrl" id="target-env"><option>TEST</option><option>PROD</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="batch-actions" style="margin-top:10px;margin-bottom:0">
+            <button class="action-btn action-btn-secondary" onclick="addToQueue()">+ Add to Queue</button>
+            <button class="action-btn action-btn-primary" onclick="submitSingle()">⚡ Submit Now</button>
+          </div>
+        </div>
+
+        <!-- Batch CSV form -->
+        <div class="card" style="padding:14px 16px;flex-shrink:0;display:none" id="batch-form">
+          <div class="card-title">Batch CSV Import</div>
+          <div class="form-label" style="margin-bottom:4px">Paste CSV (ruleId, phase, segment, operator, cutoff, description)</div>
+          <textarea class="form-ctrl" id="batch-csv" rows="5" style="font-family:'JetBrains Mono',monospace;font-size:11px;resize:vertical" placeholder="AE_PTSMI, Before Data Pull, All, >=, 500, Primary income check&#10;AE_CV_SCORE, TU Pull, QS, >=, 585, QS credit score floor&#10;AE_RISK, Credit Grade, ML, >=, 620, ML risk cutoff">AE_PTSMI_V2, Before Data Pull, All, >=, 500, Updated income check
+AE_CV_SCORE_QS, TU Pull, QS, >=, 585, QS channel score floor
+AE_RISK_ML, Credit Grade, ML, >=, 620, ML risk threshold
+AE_LTI_UPDATE, Before Data Pull, All, <=, 0.45, LTI cap update
+AE_THIN_FILE_V3, TU Pull, All, >=, 4, Thin file AT01S floor</textarea>
+          <div class="batch-actions" style="margin-top:10px;margin-bottom:0">
+            <button class="action-btn action-btn-secondary" onclick="parseBatchCSV()">📋 Parse CSV</button>
+            <button class="action-btn action-btn-primary" onclick="runBatch()">⚡ Run Batch</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Queue + Log -->
+      <div style="display:flex;flex-direction:column;gap:10px;overflow:hidden">
+        <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px;min-height:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="card-title" style="margin:0">Submission Queue <span id="queue-count" style="color:var(--blue)">(0 items)</span></div>
+            <div style="display:flex;gap:6px">
+              <button class="action-btn action-btn-secondary" style="flex:unset;padding:4px 10px;font-size:10px" onclick="clearQueue()">Clear</button>
+              <button class="action-btn action-btn-primary" id="run-queue-btn" style="flex:unset;padding:4px 10px;font-size:10px" onclick="runQueue()" disabled>▶ Run All</button>
+            </div>
+          </div>
+          <div class="batch-queue" id="batch-queue">
+            <div style="text-align:center;color:var(--muted);font-size:12px;padding:20px">No items in queue yet — add rules above or parse a CSV</div>
+          </div>
+        </div>
+
+        <!-- Terminal log -->
+        <div class="result-log" id="result-log" style="min-height:160px;max-height:220px">
+          <div class="log-line-info">[FinTelligence AI] Rule &amp; Cutoff Batch Manager ready</div>
+          <div class="log-line-info">[INFO] Connected to backend — http://localhost:8080</div>
+          <div class="log-line-info">[INFO] Awaiting submissions...</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 9 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s9">
+  <div class="slide-header">
+    <div class="slide-label">Some More Features</div>
+    <h2 class="slide-title">Governance, risk &amp; compliance features</h2>
+    <p class="slide-sub">Six spec-exact features — click any card to explore</p>
+  </div>
+  <div class="slide-body" style="padding-top:10px">
+    <div class="feat-grid">
+      <div class="feat-card" onclick="highlightFeat(this,'#EFF6FF','#1A56DB')" style="--accent-color:#1A56DB">
+        <div class="feat-card-header">
+          <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE)">⚠️</div>
+          <div><div class="feat-card-title">Conflict Detector</div><div class="feat-card-tag">Feature 1 · Backend scan</div></div>
+        </div>
+        <ul class="feat-items">
+          <li>Cutoff mismatches across segments</li>
+          <li>Opposing operators (contradiction)</li>
+          <li>ALL vs channel-specific conflicts</li>
+          <li>3 known spec conflicts always surfaced</li>
+        </ul>
+      </div>
+      <div class="feat-card" onclick="highlightFeat(this,'#ECFEFF','#0891B2')" style="--accent-color:#0891B2">
+        <div class="feat-card-header">
+          <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#ECFEFF,#CFFAFE)">🗺️</div>
+          <div><div class="feat-card-title">Segment Heatmap</div><div class="feat-card-tag">Feature 2 · Frontend only</div></div>
+        </div>
+        <ul class="feat-items">
+          <li>17 rules × 7 channels / 11 grades / 34 states</li>
+          <li>Three togglable views in one page</li>
+          <li>✓ Applies · △ Override · — N/A</li>
+          <li>Hover to highlight full row</li>
+        </ul>
+      </div>
+      <div class="feat-card" onclick="highlightFeat(this,'#FFFBEB','#D97706')" style="--accent-color:#D97706">
+        <div class="feat-card-header">
+          <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7)">🔒</div>
+          <div><div class="feat-card-title">Bypass File Manager</div><div class="feat-card-tag">Feature 3 · New DB table</div></div>
+        </div>
+        <ul class="feat-items">
+          <li>SHA-256 hashed — raw SSN never stored</li>
+          <li>CSV bulk import + per-entry audit trail</li>
+          <li>Simulate lookup before deployment</li>
+          <li>CCI → TU → CCR → TUCL decision flow</li>
+        </ul>
+      </div>
+      <div class="feat-card" onclick="highlightFeat(this,'#F5F3FF','#7C3AED')" style="--accent-color:#7C3AED">
+        <div class="feat-card-header">
+          <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE)">%</div>
+          <div><div class="feat-card-title">APR Delta Table Editor</div><div class="feat-card-tag">Feature 4 · Inline grid</div></div>
+        </div>
+        <ul class="feat-items">
+          <li>Inline-editable 5×10 EB×IB APR grid</li>
+          <li>Live gradient: green→amber→red (risk)</li>
+          <li>DRAFT → Save → Submit → Approve → Promote</li>
+          <li>Full change audit — who changed which cell</li>
+        </ul>
+      </div>
+      <div class="feat-card" onclick="highlightFeat(this,'#ECFDF5','#059669')" style="--accent-color:#059669">
+        <div class="feat-card-header">
+          <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5)">🌿</div>
+          <div><div class="feat-card-title">Dedup Rule Visualiser</div><div class="feat-card-tag">Feature 5 · Decision tree</div></div>
+        </div>
+        <ul class="feat-items">
+          <li>30-day seen → channel split → QS exceptions</li>
+          <li>Reuse data (≤3d) / Re-pull (3–30d) / Allow</li>
+          <li>Click any node → highlights underlying rule</li>
+          <li>Flat reference table for regulatory review</li>
+        </ul>
+      </div>
+      <div class="feat-card" onclick="highlightFeat(this,'#FEF2F2','#DC2626')" style="--accent-color:#DC2626">
+        <div class="feat-card-header">
+          <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#FEF2F2,#FECACA)">🔍</div>
+          <div><div class="feat-card-title">Rule Lineage Tracer</div><div class="feat-card-tag">Feature 6 · Compliance</div></div>
+        </div>
+        <ul class="feat-items">
+          <li>Auto-seeded on every create/update/promote</li>
+          <li>Source: Excel file / sheet / row / column</li>
+          <li>Value before → after with analyst + timestamp</li>
+          <li>Immutable rule_lineage table</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 10 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s10">
+  <div class="slide-header">
+    <div class="slide-label">Measurable Impact</div>
+    <h2 class="slide-title">Business outcomes — demonstrated, not claimed</h2>
+    <p class="slide-sub">Every number is traceable to a specific workflow change</p>
+  </div>
+  <div class="slide-body" style="flex-direction:column">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex-shrink:0;margin-bottom:14px">
+      <div class="metric-hero">
+        <div><div class="metric-before">72 hours</div><div class="metric-after" style="color:var(--blue)">1.8h</div></div>
+        <div><span class="metric-saving">↑ 97% faster</span><div class="metric-label">Rule change cycle time</div></div>
+      </div>
+      <div class="metric-hero">
+        <div><div class="metric-before">2 days</div><div class="metric-after" style="color:var(--cyan)">12 min</div></div>
+        <div><span class="metric-saving" style="background:#ECFEFF;border-color:#A5F3FC;color:var(--cyan)">↑ 99% faster</span><div class="metric-label">Excel → live config</div></div>
+      </div>
+      <div class="metric-hero">
+        <div><div class="metric-before">18 hours</div><div class="metric-after" style="color:var(--green)">4.2h</div></div>
+        <div><span class="metric-saving">↑ 77% faster</span><div class="metric-label">Ingestion → production</div></div>
+      </div>
+      <div class="metric-hero">
+        <div><div class="metric-before">0 entries</div><div class="metric-after" style="color:var(--purple)">Full</div></div>
+        <div><span class="metric-saving" style="background:#F5F3FF;border-color:#DDD6FE;color:var(--purple)">↑ Compliance ✓</span><div class="metric-label">Audit trail coverage</div></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;flex:1;overflow:hidden">
+      <div class="chart-card">
+        <div class="chart-title">Time Savings by Workflow Step</div>
+        <div class="chart-subtitle">Before vs After FinTelligence AI (hours)</div>
+        <div class="chart-wrap"><canvas id="savingsChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Feature Coverage Radar</div>
+        <div class="chart-subtitle">8 new spec features vs baseline</div>
+        <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SLIDE 11 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="slide" id="s11">
+  <div class="slide-header">
+    <div class="slide-label">What We Reimagined</div>
+    <h2 class="slide-title">What we reimagined — from chaos to clarity</h2>
+    <p class="slide-sub">Eight features. One platform. A lending operation transformed.</p>
+  </div>
+  <div class="comparison-tabs">
+    <button class="comparison-tab active" onclick="switchComparison('before')">📋 Before — Manual Excel</button>
+    <button class="comparison-tab" onclick="switchComparison('after')">✨ After — FinTelligence AI</button>
+  </div>
+
+  <div class="comparison-container">
+    <div class="comparison-view active" id="view-before">
+      <div class="workflow-timeline">
+        <div class="timeline-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <div class="step-title">Edit Excel</div>
+            <div class="step-desc">Analyst opens 90+ rules in Excel</div>
+            <div class="step-icon">📄</div>
+          </div>
+          <div class="step-time">30 min</div>
+        </div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <div class="step-title">Email Chain</div>
+            <div class="step-desc">Send to Manager John for approval</div>
+            <div class="step-icon">📧</div>
+          </div>
+          <div class="step-time">24h</div>
+        </div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <div class="step-title">Manual Review</div>
+            <div class="step-desc">Manager reviews, finds conflicts</div>
+            <div class="step-icon">👀</div>
+          </div>
+          <div class="step-time">18h</div>
+        </div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <div class="step-title">Deploy</div>
+            <div class="step-desc">Manual config update to production</div>
+            <div class="step-icon">🚀</div>
+          </div>
+          <div class="step-time">72h total</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison-view" id="view-after">
+      <div class="workflow-timeline">
+        <div class="timeline-step active-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <div class="step-title">Upload Config</div>
+            <div class="step-desc">Developer uploads JSON config</div>
+            <div class="step-icon">⬆️</div>
+          </div>
+          <div class="step-time">2 min</div>
+        </div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-step active-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <div class="step-title">Auto Scan</div>
+            <div class="step-desc">FinTelligence detects conflicts</div>
+            <div class="step-icon">🔍</div>
+          </div>
+          <div class="step-time">30 sec</div>
+        </div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-step active-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <div class="step-title">Approve</div>
+            <div class="step-desc">One-click approval workflow</div>
+            <div class="step-icon">✅</div>
+          </div>
+          <div class="step-time">1 min</div>
+        </div>
+        <div class="timeline-connector"></div>
+        <div class="timeline-step active-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <div class="step-title">Live</div>
+            <div class="step-desc">31 rules live in production</div>
+            <div class="step-icon">🎯</div>
+          </div>
+          <div class="step-time">1.8h total</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="impact-stats">
+    <div class="impact-stat">
+      <div class="stat-icon">8</div>
+      <div class="stat-label">Features executable</div>
+    </div>
+    <div class="impact-stat">
+      <div class="stat-icon">97%</div>
+      <div class="stat-label">Faster cycles</div>
+    </div>
+    <div class="impact-stat">
+      <div class="stat-icon">100%</div>
+      <div class="stat-label">Governance</div>
+    </div>
+    <div class="impact-stat">
+      <div class="stat-icon">0→1</div>
+      <div class="stat-label">Excel to live</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end #deck -->
+
+<!-- Nav -->
+<div id="nav">
+  <button id="prev-btn" onclick="goSlide(-1)" disabled>◀</button>
+  <div id="dots"></div>
+  <div id="slide-counter">1 / 8</div>
+  <button id="next-btn" onclick="goSlide(1)">▶</button>
+</div>
+
+<script>
+// ─── NAVIGATION ─────────────────────────────────────────────────────────────
+const TOTAL = 11;
+let current = 1;
+let chartsInited = {};
+
+function goSlide(dir) {
+  const next = current + dir;
+  if (next < 1 || next > TOTAL) return;
+  document.getElementById('s' + current).classList.remove('active');
+  current = next;
+  const s = document.getElementById('s' + current);
+  s.classList.add('active');
+  // Trigger animations
+  s.querySelectorAll('.fade-up').forEach((el,i) => {
+    setTimeout(() => el.classList.add('visible'), i * 80);
+  });
+  updateNav();
+  initChartsForSlide(current);
+  if (current === 2) initStoryAnimation();
+  if (current === 4) calcOffer();
+  if (current === 5) { buildMatrix(); runGrade(); }
+  if (current === 6) { initStateTable(); updateEmailPreview(); }
+  if (current === 7) { resetUpload(); showSheet('eb'); }
+  if (current === 8) { renderQueue(); }
+}
+
+function updateNav() {
+  document.getElementById('prev-btn').disabled = current === 1;
+  document.getElementById('next-btn').disabled = current === TOTAL;
+  document.getElementById('slide-counter').textContent = `${current} / ${TOTAL}`;
+  document.getElementById('progress-bar').style.width = (current / TOTAL * 100) + '%';
+  // Dots
+  document.getElementById('dots').innerHTML = Array.from({length:TOTAL},(_,i) =>
+    `<div class="dot ${i+1===current?'active':''}" onclick="jumpSlide(${i+1})"></div>`
+  ).join('');
+}
+function jumpSlide(n) {
+  if (n === current) return;
+  goSlide(n - current);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') goSlide(1);
+  if (e.key === 'ArrowLeft') goSlide(-1);
+});
+updateNav();
+
+// ─── STORY ANIMATION ─────────────────────────────────────────────────────────
+function showStory(which) {
+  document.querySelectorAll('.story-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0&&which==='before')||(i===1&&which==='after'));
+  });
+  document.getElementById('story-before').classList.toggle('active', which==='before');
+  document.getElementById('story-after').classList.toggle('active', which==='after');
+  if (which === 'before') animBefore();
+}
+
+function initStoryAnimation() { animBefore(); }
+
+function animBefore() {
+  const steps = ['ps1','ps2','ps3','ps4','ps5','ps6'];
+  steps.forEach(id => document.getElementById(id).classList.remove('active-step','done'));
+  let i = 0;
+  const run = () => {
+    if (i > 0) document.getElementById(steps[i-1]).classList.remove('active-step');
+    if (i > 0) document.getElementById(steps[i-1]).classList.add('done');
+    if (i < steps.length) {
+      document.getElementById(steps[i]).classList.add('active-step');
+      i++;
+      setTimeout(run, 900);
+    }
+  };
+  setTimeout(run, 400);
+}
+
+let afterRunning = false;
+function runAfterAnimation() {
+  if (afterRunning) return;
+  afterRunning = true;
+  const btn = document.getElementById('click-btn');
+  const zone = document.getElementById('click-zone');
+  btn.textContent = '⚙️';
+  btn.style.animation = 'spin 0.6s linear infinite';
+  // Add spin keyframes if not present
+  if (!document.getElementById('spin-style')) {
+    const st = document.createElement('style');
+    st.id = 'spin-style';
+    st.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+    document.head.appendChild(st);
+  }
+  const steps = [
+    { id:'ds1', time:'0 min', color:'var(--green)' },
+    { id:'ds2', time:'2 min', color:'var(--green)' },
+    { id:'ds3', time:'5 min', color:'var(--green)' },
+    { id:'ds4', time:'9 min', color:'var(--green)' },
+    { id:'ds5', time:'12 min', color:'var(--green)' },
+  ];
+  steps.forEach((st, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(st.id);
+      el.classList.add('done-step');
+      el.querySelector('.deploy-time').textContent = '✓ ' + st.time;
+      el.querySelector('.deploy-time').style.color = st.color;
+      if (i === steps.length - 1) {
+        btn.style.animation = '';
+        btn.textContent = '✅';
+        zone.querySelector('.click-label').textContent = 'Deployed in 12 minutes!';
+        zone.querySelector('.click-sub').textContent = 'Full lineage recorded · zero conflicts · live in PROD';
+        zone.style.background = 'linear-gradient(135deg,#ECFDF5,#F0FDF4)';
+        zone.style.borderColor = 'var(--green)';
+        setTimeout(() => { afterRunning = false; btn.textContent = '⚡'; zone.querySelector('.click-label').textContent = 'Click to deploy!'; zone.querySelector('.click-sub').textContent = 'Watch FinTelligence AI handle the\nentire workflow in seconds'; zone.style.background=''; zone.style.borderColor=''; steps.forEach(s=>{ const e=document.getElementById(s.id); e.classList.remove('done-step'); e.querySelector('.deploy-time').textContent='—'; }); }, 4000);
+      }
+    }, i * 700 + 200);
+  });
+}
+
+// ─── SLIDE 11: COMPARISON TAB SWITCHING ──────────────────────────────────────
+function switchComparison(which) {
+  document.querySelectorAll('.comparison-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  document.querySelectorAll('.comparison-view').forEach(view => {
+    view.classList.remove('active');
+  });
+  
+  if (which === 'before') {
+    document.querySelector('button:nth-of-type(1)').classList.add('active');
+    document.getElementById('view-before').classList.add('active');
+  } else {
+    document.querySelector('button:nth-of-type(2)').classList.add('active');
+    document.getElementById('view-after').classList.add('active');
+  }
+}
+
+// ─── CHARTS ─────────────────────────────────────────────────────────────────
+const CHART_DEFAULTS = {
+  font: { family:"'DM Sans', sans-serif" },
+  color: '#64748B',
+};
+Chart.defaults.font.family = CHART_DEFAULTS.font.family;
+Chart.defaults.color = CHART_DEFAULTS.color;
+
+function initChartsForSlide(slide) {
+  if (chartsInited[slide]) return;
+  chartsInited[slide] = true;
+  if (slide === 3) initSlide3Charts();
+  if (slide === 10) initSlide6Charts();
+}
+
+function initSlide3Charts() {
+  // Governance trajectory
+  new Chart(document.getElementById('govChart'), {
+    type:'line',
+    data:{
+      labels:['Week 1','Week 2','Week 3','Week 4','Week 5','Week 6'],
+      datasets:[{
+        label:'Governance %',
+        data:[42,58,71,84,93,100],
+        borderColor:'#1A56DB', backgroundColor:'rgba(26,86,219,.08)',
+        borderWidth:3, pointRadius:5, pointBackgroundColor:'#1A56DB',
+        fill:true, tension:.4,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        y:{ min:0, max:100, grid:{color:'#F1F5F9'}, ticks:{callback:v=>v+'%'} },
+        x:{ grid:{display:false} },
+      },
+    }
+  });
+
+  // Status donut
+  new Chart(document.getElementById('statusChart'), {
+    type:'doughnut',
+    data:{
+      labels:['Approved','Draft','Pending','Promoted'],
+      datasets:[{
+        data:[27,2,1,1],
+        backgroundColor:['#059669','#3B82F6','#D97706','#7C3AED'],
+        borderWidth:0, hoverOffset:6,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{ legend:{position:'right', labels:{padding:12, boxWidth:12}} },
+    }
+  });
+
+  // Cycle time comparison
+  new Chart(document.getElementById('cycleChart'), {
+    type:'bar',
+    data:{
+      labels:['Rule Change\nCycle','Excel →\nConfig','Ingestion →\nProd','Conflict\nDetection','Audit Trail\nCreation'],
+      datasets:[
+        { label:'Before (hours)', data:[72,48,18,0,0], backgroundColor:'rgba(220,38,38,.15)', borderColor:'#DC2626', borderWidth:1.5 },
+        { label:'After (hours)', data:[1.8,0.2,4.2,0.05,0.02], backgroundColor:'rgba(5,150,105,.15)', borderColor:'#059669', borderWidth:1.5 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', labels:{ padding:16, boxWidth:12 } } },
+      scales:{
+        y:{ grid:{color:'#F1F5F9'}, ticks:{callback:v=>v+'h'} },
+        x:{ grid:{display:false} },
+      },
+    }
+  });
+
+  // Phase donut
+  new Chart(document.getElementById('phaseChart'), {
+    type:'bar',
+    data:{
+      labels:['Before Data Pull','TU Pull','Credit Grade'],
+      datasets:[{
+        label:'Rules',
+        data:[12,11,8],
+        backgroundColor:['#3B82F6','#0891B2','#7C3AED'],
+        borderRadius:6, borderWidth:0,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ grid:{color:'#F1F5F9'} },
+        y:{ grid:{display:false} },
+      },
+    }
+  });
+}
+
+function initSlide6Charts() {
+  // Savings bar chart
+  new Chart(document.getElementById('savingsChart'), {
+    type:'bar',
+    data:{
+      labels:['Rule Change','Excel→Config','Ingestion→Prod','Approval','Deploy'],
+      datasets:[
+        { label:'Before (h)', data:[72,48,18,24,6], backgroundColor:'rgba(220,38,38,.12)', borderColor:'#DC2626', borderWidth:1.5, borderRadius:4 },
+        { label:'After (h)',  data:[1.8,0.2,4.2,0.1,0.05], backgroundColor:'rgba(5,150,105,.12)', borderColor:'#059669', borderWidth:1.5, borderRadius:4 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', labels:{padding:14,boxWidth:12} } },
+      scales:{
+        y:{ grid:{color:'#F1F5F9'}, ticks:{callback:v=>v+'h'} },
+        x:{ grid:{display:false} },
+      },
+    }
+  });
+
+  // Radar
+  new Chart(document.getElementById('radarChart'), {
+    type:'radar',
+    data:{
+      labels:['Offer Calc','Grade Engine','Conflict Detect','Seg Heatmap','Bypass Mgr','APR Editor','Dedup Viz','Lineage Tracer'],
+      datasets:[
+        { label:'Before', data:[0,0,0,0,0,0,0,0], borderColor:'#DC2626', backgroundColor:'rgba(220,38,38,.08)', borderWidth:1.5 },
+        { label:'After',  data:[10,10,10,10,10,10,10,10], borderColor:'#1A56DB', backgroundColor:'rgba(26,86,219,.08)', borderWidth:2 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ r:{ min:0, max:10, ticks:{display:false}, grid:{color:'#E2E8F0'}, pointLabels:{font:{size:9}} } },
+      plugins:{ legend:{ position:'bottom', labels:{padding:12,boxWidth:12} } },
+    }
+  });
+}
+
+// ─── OFFER CALCULATOR ────────────────────────────────────────────────────────
+const GRADES = {
+  A1:{maxLoan:6000,maxTenor:36,minAPR:59.9,maxMonPmt:300,orgFee:.0549},
+  A2:{maxLoan:5000,maxTenor:36,minAPR:69.9,maxMonPmt:275,orgFee:.0549},
+  B1:{maxLoan:4000,maxTenor:24,minAPR:79.9,maxMonPmt:150,orgFee:.0549},
+  B2:{maxLoan:3500,maxTenor:24,minAPR:89.9,maxMonPmt:150,orgFee:.0549},
+  C1:{maxLoan:3000,maxTenor:24,minAPR:99.9,maxMonPmt:150,orgFee:.0549},
+  C2:{maxLoan:2500,maxTenor:24,minAPR:110,maxMonPmt:150,orgFee:.0549},
+  D1:{maxLoan:2000,maxTenor:18,minAPR:120,maxMonPmt:100,orgFee:.0549},
+  D2:{maxLoan:1500,maxTenor:18,minAPR:135,maxMonPmt:100,orgFee:.0549},
+  E1:{maxLoan:1250,maxTenor:18,minAPR:149,maxMonPmt:100,orgFee:.0549},
+  E2:{maxLoan:1000,maxTenor:12,minAPR:169,maxMonPmt:100,orgFee:.0549},
+};
+const CHANNEL_MAX={QS:10000,ML:10000,MO:1000,LT:8000,CMPQ:15000,CKPQ:2000};
+const STATE_MAX={TX:10000,FL:10000,CA:10000,NY:8000,VA:10000};
+
+function monPmt(P,APR,n){const r=APR/100/12;if(r===0)return P/n;return P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);}
+function maxLoanForPmt(pmt,APR,n){const r=APR/100/12;if(r===0)return pmt*n;return pmt*(Math.pow(1+r,n)-1)/(r*Math.pow(1+r,n));}
+
+function calcOffer() {
+  const g  = document.getElementById('calc-grade').value;
+  const st = document.getElementById('calc-state').value;
+  const ch = document.getElementById('calc-channel').value;
+  const req = Number(document.getElementById('calc-amount').value)||5000;
+  const inc = Math.min(Number(document.getElementById('calc-income').value)||4500, 8333);
+  const obl = Number(document.getElementById('calc-obligations').value)||0;
+
+  const G = GRADES[g]; const APR = G.minAPR;
+  const L1=G.maxLoan, L2=STATE_MAX[st]||10000, L3=CHANNEL_MAX[ch]||10000;
+  const L4=maxLoanForPmt(G.maxMonPmt,APR,G.maxTenor);
+  const L5=maxLoanForPmt(inc*.1,APR,G.maxTenor);
+  const L6=maxLoanForPmt(inc*.7-obl,APR,G.maxTenor);
+  const L7=Math.max(1000+1000*G.orgFee, req+req*G.orgFee);
+
+  const maxOffer=Math.min(L1,L2,L3,L4,L5,L6,L7);
+  const origFee=Math.min(9999,G.orgFee*maxOffer);
+  const loanAmt=Math.floor((maxOffer-origFee)/100)*100;
+  const financeAmt=loanAmt+origFee;
+
+  const lVals={L1,L2,L3,L4,L5,L6,L7};
+  const minL=Math.min(L1,L2,L3,L4,L5,L6,L7);
+  const bindingKey=Object.entries(lVals).find(([_,v])=>Math.abs(v-minL)<0.01)?.[0];
+
+  // Update offer card
+  document.getElementById('offer-amount').textContent='$'+loanAmt.toLocaleString();
+  document.getElementById('offer-meta').textContent=`Finance Amount: $${Math.round(financeAmt).toLocaleString()} · Orig Fee: $${Math.round(origFee).toLocaleString()}`;
+  document.getElementById('pill-apr').textContent='APR '+APR+'%';
+  document.getElementById('pill-grade').textContent='Grade '+g;
+  const M1=G.maxMonPmt, M2=inc*.7-obl, maxPmt=Math.min(M1,M2);
+
+  // Tenor options
+  const tenors=[12,18,24,36].filter(t=>t<=G.maxTenor&&monPmt(financeAmt,APR,t)<=maxPmt+0.5);
+  if(!tenors.length)tenors.push(G.maxTenor);
+  document.getElementById('pill-tenor').textContent='Tenor: '+tenors.map(t=>t+'mo').join('/');
+  const segFlag=['ML','MO','CKPQ','LT','QS'].includes(ch)&&req===1000?'E1_E2':'Others';
+  document.getElementById('pill-seg').textContent='Segment: '+segFlag;
+
+  // L constraints
+  const lDescs={L1:'Grade max loan',L2:'State ceiling',L3:'Channel cap',L4:'Monthly payment cap',L5:'10% income rule',L6:'70% income − obligations',L7:'MAX(state min, requested + fee)'};
+  document.getElementById('l-constraints').innerHTML=Object.entries(lVals).map(([k,v])=>`
+    <div class="l-constraint ${k===bindingKey?'binding':''}">
+      <span class="l-key">${k}</span>
+      <span class="l-desc">${lDescs[k]}</span>
+      <span class="l-val">$${Math.round(v).toLocaleString()}</span>
+      ${k===bindingKey?'<span class="binding-badge">BINDING</span>':''}
+    </div>`).join('');
+
+  // Payment table
+  document.getElementById('payment-tbody').innerHTML=tenors.map(t=>{
+    const pmt=monPmt(financeAmt,APR,t);
+    const total=pmt*t;
+    return `<tr><td>${t}mo</td><td>$${Math.round(pmt).toLocaleString()}</td><td>$${Math.round(total).toLocaleString()}</td><td>${APR}%</td></tr>`;
+  }).join('');
+
+  document.getElementById('cap-info').innerHTML=`M1 (Grade max pmt): <strong>$${M1}</strong><br>M2 (70% income − obligations): <strong>$${Math.round(M2).toLocaleString()}</strong><br>Max allowed payment: <strong>$${Math.round(maxPmt).toLocaleString()}</strong>`;
+  document.getElementById('seg-flag').innerHTML=`<span style="color:${segFlag==='E1_E2'?'var(--red)':'var(--green)'};font-weight:800">${segFlag}</span>`;
+}
+
+// ─── GRADE ENGINE ─────────────────────────────────────────────────────────────
+const EB_RANGES=[{band:'EB1',min:761,max:999},{band:'EB2',min:681,max:760},{band:'EB3',min:621,max:680},{band:'EB4',min:581,max:620},{band:'EB5',min:500,max:580}];
+const ADF_RANGES=[{band:'IB1',min:891,max:999},{band:'IB2',min:868,max:890},{band:'IB3',min:845,max:867},{band:'IB4',min:820,max:844},{band:'IB5',min:796,max:819},{band:'IB6',min:770,max:795},{band:'IB7',min:742,max:769},{band:'IB8',min:703,max:741},{band:'IB9',min:647,max:702},{band:'IB10',min:0,max:646}];
+const MKT_RANGES=[{col:0,min:891,max:999},{col:1,min:868,max:890},{col:2,min:845,max:867},{col:3,min:820,max:844},{col:4,min:796,max:819},{col:5,min:770,max:795},{col:6,min:742,max:769},{col:7,min:703,max:741},{col:8,min:647,max:702},{col:9,min:0,max:646}];
+const IB_MATRIX=[
+  ['IB1','IB1','IB1','IB1','IB1','IB1','IB1','IB1','IB1','IB2'],
+  ['IB2','IB2','IB2','IB2','IB2','IB2','IB2','IB2','IB2','IB3'],
+  ['IB3','IB3','IB3','IB3','IB3','IB3','IB3','IB3','IB3','IB4'],
+  ['IB4','IB4','IB4','IB4','IB4','IB4','IB4','IB4','IB4','IB5'],
+  ['IB5','IB5','IB5','IB5','IB5','IB5','IB5','IB5','IB5','IB6'],
+  ['IB6','IB6','IB6','IB6','IB6','IB6','IB6','IB6','IB6','IB7'],
+  ['IB7','IB7','IB7','IB7','IB7','IB7','IB7','IB7','IB7','IB8'],
+  ['IB8','IB8','IB8','IB8','IB8','IB8','IB8','IB8','IB8','IB9'],
+  ['IB9','IB9','IB9','IB9','IB9','IB9','IB9','IB9','IB9','IB10'],
+  ['IB10','IB10','IB10','IB10','IB10','IB10','IB10','IB10','IB10','IB10'],
+];
+const GRADE_MATRIX={EB1:['A1','A2','B1','B2','C1','C2','F','F','F','F'],EB2:['B1','B2','C1','C2','D1','D2','E1','F','F','F'],EB3:['B2','C1','C1','C2','D1','D2','E1','E2','F','F'],EB4:['C1','C2','C2','D1','D1','D2','E1','E2','F','F'],EB5:['D1','D1','D2','D2','E1','E1','E2','E2','F','F']};
+const GRADE_RANKS={A1:1,A2:2,B1:3,B2:4,C1:5,C2:6,D1:7,D2:8,E1:9,E2:10};
+const RANK_GRADES={1:'A1',2:'A2',3:'B1',4:'B2',5:'C1',6:'C2',7:'D1',8:'D2',9:'E1',10:'E2'};
+const GRADE_COLORS={A1:'#059669',A2:'#059669',B1:'#16A34A',B2:'#16A34A',C1:'#D97706',C2:'#D97706',D1:'#EA580C',D2:'#EA580C',E1:'#DC2626',E2:'#DC2626',F:'#7C3AED'};
+const ADJS=[
+  {id:'QS',label:'Channel = QS',wt:1,fn:f=>f.ch==='QS',e:false},
+  {id:'ML',label:'Channel = ML',wt:1.5,fn:f=>f.ch==='ML',e:false},
+  {id:'MO',label:'Channel = MO',wt:2,fn:f=>f.ch==='MO',e:false},
+  {id:'VA',label:'State = VA',wt:.5,fn:f=>f.st==='VA',e:true},
+  {id:'TF',label:'AT01S ≤ 3 (thin file)',wt:0,ow:'E2',fn:f=>f.at01s<=3},
+];
+
+function getEB(v){return EB_RANGES.find(e=>v>=e.min&&v<=e.max);}
+function getADF(v){return ADF_RANGES.find(e=>v>=e.min&&v<=e.max);}
+function getMkt(v){return MKT_RANGES.find(e=>v>=e.min&&v<=e.max);}
+
+// Colour gradient for matrix cells
+function ibColor(band){
+  const n=parseInt(band.replace('IB',''));
+  const pct=(n-1)/9;
+  const r=Math.round(5+pct*200), g2=Math.round(150-pct*120), b=Math.round(105-pct*50);
+  return `rgb(${r},${g2},${b})`;
+}
+
+function buildMatrix(){
+  const wrap=document.getElementById('ib-matrix-wrap');
+  let html='<table class="ib-matrix"><thead><tr><th>ADF↓/Mkt→</th>';
+  MKT_RANGES.forEach(m=>{ html+=`<th>${m.min}<br>–${m.max}</th>`; });
+  html+='</tr></thead><tbody>';
+  IB_MATRIX.forEach((row,ri)=>{
+    html+=`<tr><td class="row-header">${ADF_RANGES[ri].band}<br><span style="font-size:8px;opacity:.6">${ADF_RANGES[ri].min}–${ADF_RANGES[ri].max}</span></td>`;
+    row.forEach((cell,ci)=>{
+      const c=ibColor(cell);
+      html+=`<td id="mc-${ri}-${ci}" style="background:${c};color:white" onclick="highlightCell(${ri},${ci})">${cell}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+let lastCell={ri:-1,ci:-1};
+function highlightCell(ri,ci){
+  if(lastCell.ri>=0) document.getElementById(`mc-${lastCell.ri}-${lastCell.ci}`)?.classList.remove('active-cell');
+  document.getElementById(`mc-${ri}-${ci}`)?.classList.add('active-cell');
+  lastCell={ri,ci};
+}
+
+function runGrade(){
+  const vs=Number(document.getElementById('g-vantage').value)||720;
+  const adf=Number(document.getElementById('g-adf').value)||830;
+  const mkt=Number(document.getElementById('g-market').value)||810;
+  const ch=document.getElementById('g-channel').value;
+  const st=document.getElementById('g-state').value;
+  const at01s=Number(document.getElementById('g-at01s').value)||8;
+
+  const eb=getEB(vs), adfB=getADF(adf), mktC=getMkt(mkt);
+  if(!eb||!adfB||!mktC){document.getElementById('grade-flow').innerHTML='<div style="color:var(--red);font-size:12px">Score out of range</div>';return;}
+
+  const adfIdx=parseInt(adfB.band.replace('IB',''))-1;
+  const mktIdx=mktC.col;
+  const finalIB=IB_MATRIX[adfIdx][mktIdx];
+  const ibIdx=parseInt(finalIB.replace('IB',''))-1;
+  const initialGrade=GRADE_MATRIX[eb.band]?.[ibIdx]||'F';
+
+  document.getElementById('g-eb-result').textContent='→ '+eb.band;
+  document.getElementById('g-adf-result').textContent='→ '+adfB.band+' (row '+adfIdx+')';
+  document.getElementById('g-mkt-result').textContent='→ Col '+(mktIdx+1);
+
+  // Highlight matrix
+  if(document.getElementById('mc-'+adfIdx+'-'+mktIdx)){
+    if(lastCell.ri>=0) document.getElementById(`mc-${lastCell.ri}-${lastCell.ci}`)?.classList.remove('active-cell');
+    document.getElementById(`mc-${adfIdx}-${mktIdx}`)?.classList.add('active-cell');
+    lastCell={ri:adfIdx,ci:mktIdx};
+    document.getElementById(`mc-${adfIdx}-${mktIdx}`)?.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+
+  const isE=['E1','E2','F'].includes(initialGrade);
+  const f={ch,st,at01s};
+  let totalWt=0; const appliedAdjs=[];
+  ADJS.filter(a=>!a.ow).forEach(a=>{
+    const ok=a.fn(f)&&(!isE||a.e);
+    if(ok)totalWt+=a.wt;
+    appliedAdjs.push({...a,applied:ok});
+  });
+  const aggWt=Math.min(Math.round(totalWt),2);
+  const initRank=GRADE_RANKS[initialGrade]||10;
+  const adjRank=Math.min(initRank+(initialGrade!=='F'?aggWt:0),10);
+  const adjustedGrade=RANK_GRADES[adjRank]||'F';
+
+  // Overwrites
+  let finalGrade=adjustedGrade;
+  const overwrites=ADJS.filter(a=>a.ow);
+  overwrites.forEach(a=>{if(a.fn(f)&&adjustedGrade!=='F')finalGrade=a.ow;});
+
+  const flowEl=document.getElementById('grade-flow');
+  const gc=c=>GRADE_COLORS[c]||'#64748B';
+  flowEl.innerHTML=`
+    <div class="grade-step-row" style="background:#EFF6FF;border-color:#BFDBFE">
+      <div class="grade-pill" style="background:${gc(initialGrade)}20;color:${gc(initialGrade)};border:2px solid ${gc(initialGrade)}">${initialGrade}</div>
+      <div style="flex:1;font-size:11px"><strong>Initial grade</strong><br><span style="color:var(--muted);font-size:10px">${eb.band} × ${finalIB} → ${initialGrade} (rank ${initRank})</span></div>
+    </div>
+    ${appliedAdjs.filter(a=>a.applied).map(a=>`
+    <div class="grade-step-row applied">
+      <div style="width:36px;height:36px;border-radius:50%;background:#ECFDF5;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">✓</div>
+      <div style="flex:1;font-size:11px"><strong>${a.label}</strong><br><span style="color:var(--muted);font-size:10px">+${a.wt} weightage</span></div>
+      <span style="font-size:11px;font-weight:700;color:var(--green)">+${a.wt}</span>
+    </div>`).join('')}
+    ${appliedAdjs.filter(a=>a.applied).length===0?'<div class="grade-step-row" style="opacity:.5;font-size:11px">No adjustments applied</div>':''}
+    <div class="grade-step-row" style="background:#FFF7ED;border-color:#FED7AA">
+      <div style="flex:1;font-size:11px"><strong>Aggregate weightage</strong></div>
+      <span style="font-size:13px;font-weight:700;color:var(--amber)">MIN(${totalWt.toFixed(1)}, 2) = ${aggWt} → rank +${aggWt}</span>
+    </div>
+    ${finalGrade!==adjustedGrade?`<div class="grade-step-row" style="background:#FEF2F2;border-color:#FECACA"><div style="flex:1;font-size:11px"><strong>Overwrite applied (AT01S ≤ 3)</strong></div><div class="grade-pill" style="background:${gc(finalGrade)}20;color:${gc(finalGrade)};border:2px solid ${gc(finalGrade)}">${finalGrade}</div></div>`:''}
+  `;
+
+  const bannerEl=document.getElementById('final-grade-banner');
+  bannerEl.style.background=`linear-gradient(135deg,${gc(finalGrade)},${gc(finalGrade)}99)`;
+  document.getElementById('final-grade-big').textContent=finalGrade;
+  const segFlag=['ML','MO','CKPQ','LT','QS'].includes(ch)&&false?'E1_E2':'Others';
+  document.getElementById('grade-segment-flag').textContent='Segment: '+segFlag;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SLIDE 9 — STATE & CHANNEL CONFIG
+// ═══════════════════════════════════════════════════════════════════
+const STATE_DATA = [
+  { code:'AK', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'AZ', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'CA', status:'OFF', minLoan:2000, maxLoan:10000, maxAPR:36.0  },
+  { code:'CO', status:'OFF', minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'DE', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'FL', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'GA', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'HI', status:'ON',  minLoan:1600, maxLoan:10000, maxAPR:179.9 },
+  { code:'ID', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'IN', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'KS', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'LA', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'MI', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'MN', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'MS', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'MT', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'NC', status:'OFF', minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'NE', status:'OFF', minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'NM', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'NV', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'OH', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'OK', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'PA', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'RI', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'SC', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'SD', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'TN', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'TX', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'UT', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'VA', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'WA', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+  { code:'WI', status:'ON',  minLoan:1000, maxLoan:10000, maxAPR:179.9 },
+];
+const CHANNEL_DATA = [
+  { code:'CMPQ', maxLoan:15000, minLoan:1000, activeStates:32, status:'ON' },
+  { code:'CKPQ', maxLoan:2000,  minLoan:1000, activeStates:28, status:'ON' },
+  { code:'QS',   maxLoan:10000, minLoan:1000, activeStates:32, status:'ON' },
+  { code:'LT',   maxLoan:8000,  minLoan:1000, activeStates:30, status:'ON' },
+  { code:'ML',   maxLoan:10000, minLoan:1000, activeStates:32, status:'ON' },
+  { code:'MO',   maxLoan:1000,  minLoan:1000, activeStates:25, status:'OFF' },
+  { code:'CMACT',maxLoan:15000, minLoan:1000, activeStates:32, status:'ON' },
+];
+
+let stateChanges = {}, channelChanges = {};
+let stateDataCopy = STATE_DATA.map(s => ({...s}));
+let channelDataCopy = CHANNEL_DATA.map(c => ({...c}));
+
+function initStateTable() {
+  renderStateTable(stateDataCopy);
+  renderChannelTable(channelDataCopy);
+}
+
+function renderStateTable(data) {
+  const filter = (document.getElementById('state-filter')||{}).value||'';
+  const statusFilter = (document.getElementById('state-status-filter')||{}).value||'';
+  const tbody = document.getElementById('state-table-body');
+  if (!tbody) return;
+  const filtered = data.filter(s =>
+    (!filter || s.code.toLowerCase().includes(filter.toLowerCase())) &&
+    (!statusFilter || s.status === statusFilter)
+  );
+  tbody.innerHTML = filtered.map(s => {
+    const changed = stateChanges[s.code];
+    return `<tr class="${changed?'changed-row':''}" id="str-${s.code}">
+      <td><strong style="font-family:'JetBrains Mono',monospace">${s.code}</strong> ${changed?'<span class="changed-badge">CHANGED</span>':''}</td>
+      <td>
+        <button class="toggle-pill ${s.status==='ON'?'toggle-on':'toggle-off'}" onclick="toggleStateStatus('${s.code}')">
+          ${s.status==='ON'?'● ON':'○ OFF'}
+        </button>
+      </td>
+      <td class="editable" ondblclick="editCell(this,'${s.code}','minLoan')">$${s.minLoan.toLocaleString()}</td>
+      <td class="editable" ondblclick="editCell(this,'${s.code}','maxLoan')">$${s.maxLoan.toLocaleString()}</td>
+      <td class="editable" ondblclick="editCell(this,'${s.code}','maxAPR')">${s.maxAPR}%</td>
+      <td>${changed?`<span style="font-size:10px;color:var(--amber)">●</span>`:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderChannelTable(data) {
+  const tbody = document.getElementById('channel-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = data.map(c => `
+    <tr>
+      <td><strong style="font-family:'JetBrains Mono',monospace;color:var(--blue)">${c.code}</strong></td>
+      <td class="editable" ondblclick="editChannelCell(this,'${c.code}','maxLoan')">$${c.maxLoan.toLocaleString()}</td>
+      <td>$${c.minLoan.toLocaleString()}</td>
+      <td>${c.activeStates} states</td>
+      <td><button class="toggle-pill ${c.status==='ON'?'toggle-on':'toggle-off'}" onclick="toggleChannelStatus('${c.code}')">${c.status==='ON'?'● ON':'○ OFF'}</button></td>
+    </tr>`).join('');
+}
+
+function editCell(td, code, field) {
+  const s = stateDataCopy.find(x => x.code === code);
+  if (!s) return;
+  const cur = s[field];
+  td.innerHTML = `<input class="inline-input" type="number" value="${cur}" onblur="commitCell(this,'${code}','${field}')" onkeydown="if(event.key==='Enter')this.blur()"/>`;
+  td.querySelector('input').focus();
+}
+
+function commitCell(inp, code, field) {
+  const val = parseFloat(inp.value);
+  if (!isNaN(val)) {
+    const s = stateDataCopy.find(x => x.code === code);
+    if (s && s[field] !== val) {
+      if (!stateChanges[code]) stateChanges[code] = {};
+      stateChanges[code][field] = { from: s[field], to: val };
+      s[field] = val;
+    }
+  }
+  renderStateTable(stateDataCopy);
+  updateChangedCount();
+}
+
+function editChannelCell(td, code, field) {
+  const c = channelDataCopy.find(x => x.code === code);
+  if (!c) return;
+  td.innerHTML = `<input class="inline-input" type="number" value="${c[field]}" onblur="commitChannelCell(this,'${code}','${field}')" onkeydown="if(event.key==='Enter')this.blur()"/>`;
+  td.querySelector('input').focus();
+}
+
+function commitChannelCell(inp, code, field) {
+  const val = parseFloat(inp.value);
+  const c = channelDataCopy.find(x => x.code === code);
+  if (c && !isNaN(val)) { if (!channelChanges[code]) channelChanges[code]={}; channelChanges[code][field]={from:c[field],to:val}; c[field]=val; }
+  renderChannelTable(channelDataCopy);
+}
+
+function toggleStateStatus(code) {
+  const s = stateDataCopy.find(x => x.code === code);
+  if (!s) return;
+  const orig = STATE_DATA.find(x => x.code === code).status;
+  s.status = s.status === 'ON' ? 'OFF' : 'ON';
+  if (!stateChanges[code]) stateChanges[code] = {};
+  stateChanges[code].status = { from: orig, to: s.status };
+  renderStateTable(stateDataCopy);
+  updateChangedCount();
+  updateEmailPreview();
+}
+
+function toggleChannelStatus(code) {
+  const c = channelDataCopy.find(x => x.code === code);
+  if (!c) return;
+  c.status = c.status === 'ON' ? 'OFF' : 'ON';
+  if (!channelChanges[code]) channelChanges[code] = {};
+  channelChanges[code].status = { to: c.status };
+  renderChannelTable(channelDataCopy);
+}
+
+function updateChangedCount() {
+  const n = Object.keys(stateChanges).length;
+  const el = document.getElementById('state-changed-count');
+  if (!el) return;
+  el.style.display = n > 0 ? 'inline' : 'none';
+  el.textContent = `${n} unsaved`;
+}
+
+function filterStates() { renderStateTable(stateDataCopy); }
+function resetStateChanges() { stateChanges={}; stateDataCopy=STATE_DATA.map(s=>({...s})); renderStateTable(stateDataCopy); updateChangedCount(); }
+
+function updateEmailPreview() {
+  const recipient = (document.getElementById('approver-email')||{}).value || 'manager.john@adf.com';
+  document.getElementById('ep-to').textContent = recipient;
+  const codes = Object.keys(stateChanges);
+  document.getElementById('ep-sub').textContent = `[ACTION REQUIRED] State Config change — ${codes.slice(0,3).join(', ')}${codes.length>3?'...':''}`;
+  const lines = codes.map(code => {
+    const chg = stateChanges[code];
+    return Object.entries(chg).map(([field, v]) =>
+      `• ${code} — ${field}: ${v.from} → ${v.to}`
+    ).join('\n');
+  }).join('\n');
+  document.getElementById('ep-body').innerHTML = `Hi John,<br><br>The following state configuration changes have been submitted for your approval:<br><br>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;white-space:pre">${lines||'• No changes yet'}</span><br><br>
+    Please review and approve in the FinTelligence AI platform.<br><br>Submitted by: lead-analyst<br>Session: CONFIG_${new Date().toISOString().slice(0,7).replace('-','')}`;
+}
+
+function saveStateConfig() {
+  if (Object.keys(stateChanges).length === 0) {
+    alert('No changes to save — edit some state values first by double-clicking a cell or toggling status.');
+    return;
+  }
+  updateEmailPreview();
+  document.getElementById('sent-toast').style.display = 'none';
+  // Auto-trigger email send
+  sendApprovalEmail();
+}
+
+function saveChannelConfig() {
+  if (Object.keys(channelChanges).length === 0) {
+    alert('No channel changes to save — toggle a status or double-click Max Loan to edit.');
+    return;
+  }
+  const recipient = (document.getElementById('approver-email')||{}).value;
+  showToast(recipient);
+  logAuditEntry(`Channel config updated — ${Object.keys(channelChanges).join(', ')} submitted for approval`);
+  channelChanges = {};
+}
+
+function sendApprovalEmail() {
+  const btn = document.getElementById('send-email-btn');
+  const txt = document.getElementById('send-btn-text');
+  btn.disabled = true;
+  txt.textContent = '⏳ Sending...';
+  setTimeout(() => {
+    txt.textContent = '⚡ Send Approval Request';
+    btn.disabled = false;
+    const recipient = (document.getElementById('approver-email')||{}).value;
+    showToast(recipient);
+    const codes = Object.keys(stateChanges);
+    logAuditEntry(`State config changes submitted — ${codes.join(', ')} pending approval from ${recipient}`);
+    stateChanges = {};
+    renderStateTable(stateDataCopy);
+    updateChangedCount();
+  }, 1200);
+}
+
+function showToast(recipient) {
+  const toast = document.getElementById('sent-toast');
+  document.getElementById('toast-recipient').textContent = recipient;
+  toast.style.display = 'flex';
+  setTimeout(() => toast.style.display = 'none', 4000);
+}
+
+function logAuditEntry(msg) {
+  const log = document.getElementById('config-audit-log');
+  if (!log) return;
+  const entry = document.createElement('div');
+  entry.className = 'audit-entry';
+  entry.innerHTML = `<div class="audit-dot" style="background:var(--blue)"></div><div><strong>NOW</strong> — ${msg}</div>`;
+  log.insertBefore(entry, log.firstChild);
+}
+
+// Init state/channel tables when slide 9 is first shown
+document.getElementById('approver-email')?.addEventListener('input', updateEmailPreview);
+
+// ═══════════════════════════════════════════════════════════════════
+// SLIDE 10 — OFFER CONFIG UPLOAD
+// ═══════════════════════════════════════════════════════════════════
+function showSheet(id) {
+  document.querySelectorAll('.sheet-view').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('#preview-tabs .sheet-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sheet-' + id).style.display = '';
+  const idx = {'eb':0,'ib':1,'matrix':2,'offers':3,'tenors':4}[id]||0;
+  document.querySelectorAll('#preview-tabs .sheet-tab')[idx]?.classList.add('active');
+}
+
+let uploadRunning = false;
+function simulateUpload() {
+  if (uploadRunning) return;
+  uploadRunning = true;
+  const btn = document.getElementById('simulate-btn');
+  btn.disabled = true; btn.textContent = '⏳ Processing...';
+  document.getElementById('commit-title').textContent = 'Parsing upload pipeline...';
+  document.getElementById('commit-sub').textContent = 'Reading sheets, extracting bands, building grade matrix...';
+
+  const steps = [
+    { id:'up1', bar:'upb1', label:'✅ File read — 3 sheets detected', dur:400 },
+    { id:'up2', bar:'upb2', label:'✅ Sheet structure validated — MAIN + OFFER_CONFIG', dur:600 },
+    { id:'up3', bar:'upb3', label:'✅ EB bands extracted (5), IB bands extracted (10)', dur:800 },
+    { id:'up4', bar:'upb4', label:'✅ Grade matrix built — 50 cells (5×10)', dur:700 },
+    { id:'up5', bar:'upb5', label:'✅ Offer table (10 rows), tenor table (6 configs)', dur:600 },
+    { id:'up6', bar:'upb6', label:'✅ Committed to database — batchId: ' + 'BATCH_' + Date.now().toString(36).toUpperCase(), dur:500 },
+  ];
+
+  let cumDelay = 0;
+  steps.forEach((step, i) => {
+    setTimeout(() => {
+      // Set running
+      document.getElementById(step.id).classList.add('running');
+      document.getElementById(step.bar).style.width = '0%';
+      setTimeout(() => { document.getElementById(step.bar).style.width = '100%'; }, 50);
+      setTimeout(() => {
+        document.getElementById(step.id).classList.remove('running');
+        document.getElementById(step.id).classList.add('done');
+        const span = document.getElementById(step.id).querySelector('span:nth-child(2)');
+        if (span) span.textContent = step.label;
+        if (i === steps.length - 1) {
+          document.getElementById('commit-title').textContent = '✅ Upload complete — all tables committed';
+          document.getElementById('commit-sub').textContent = '5 EB bands · 10 IB bands · 50 grade cells · 10 offer rows · 6 tenor configs';
+          btn.textContent = '✅ Done'; uploadRunning = false;
+          // Flash stats
+          document.getElementById('parse-msg').textContent =
+            'Successfully parsed and committed: 5 EB bands, 10 IB bands, 50 grade matrix cells, 10 offer configs, 6 tenor configs — batchId recorded.';
+          document.getElementById('parse-msg').style.color = 'var(--green)';
+          document.getElementById('parse-msg').style.fontWeight = '700';
+          setTimeout(() => { btn.disabled=false; btn.textContent='▶ Simulate Upload'; uploadRunning=false; }, 3000);
+        }
+      }, step.dur * 0.9);
+    }, cumDelay);
+    cumDelay += step.dur;
+  });
+}
+
+function resetUpload() {
+  uploadRunning = false;
+  const steps = ['up1','up2','up3','up4','up5','up6'];
+  const bars  = ['upb1','upb2','upb3','upb4','upb5','upb6'];
+  const labels = ['Read Excel file','Parse sheet structure','Extract EB / IB bands','Build grade matrix','Load offer + tenor tables','Commit to database'];
+  steps.forEach((id,i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('running','done');
+    el.querySelector('span:nth-child(2)').textContent = labels[i];
+    document.getElementById(bars[i]).style.width = '0%';
+  });
+  const btn = document.getElementById('simulate-btn');
+  btn.disabled = false; btn.textContent = '▶ Simulate Upload';
+  document.getElementById('commit-title').textContent = 'Ready to simulate an upload';
+  document.getElementById('commit-sub').textContent = 'Click "Simulate Upload" to watch the full parse + commit pipeline';
+  document.getElementById('parse-msg').textContent = 'Upload an Excel file to see live parsing results';
+  document.getElementById('parse-msg').style.color = '';
+  document.getElementById('parse-msg').style.fontWeight = '';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processDroppedFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processDroppedFile(file);
+}
+function processDroppedFile(file) {
+  document.getElementById('drop-icon').textContent = '✅';
+  document.getElementById('drop-title').textContent = file.name;
+  document.getElementById('drop-sub').textContent = `${(file.size/1024).toFixed(1)} KB — ready to parse`;
+  simulateUpload();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SLIDE 11 — RULE & CUTOFF BATCH MANAGER
+// ═══════════════════════════════════════════════════════════════════
+let queueItems = [];
+let logLines = [
+  { cls:'log-line-info', text:'[FinTelligence AI] Rule & Cutoff Batch Manager ready' },
+  { cls:'log-line-info', text:'[INFO] Connected to backend — http://localhost:8080' },
+  { cls:'log-line-info', text:'[INFO] Awaiting submissions...' },
+];
+
+function setMode(mode) {
+  document.getElementById('single-form').style.display = mode==='single' ? '' : 'none';
+  document.getElementById('batch-form').style.display  = mode==='batch'  ? '' : 'none';
+  document.getElementById('mode-single').className = mode==='single'
+    ? 'action-btn action-btn-primary' : 'action-btn action-btn-secondary';
+  document.getElementById('mode-batch').className = mode==='batch'
+    ? 'action-btn action-btn-primary' : 'action-btn action-btn-secondary';
+  // fix styling
+  ['mode-single','mode-batch'].forEach(id => {
+    document.getElementById(id).style.flex='unset';
+    document.getElementById(id).style.padding='6px 16px';
+    document.getElementById(id).style.fontSize='11px';
+  });
+}
+
+function toggleEntryType() {
+  const type = document.getElementById('entry-type').value;
+  document.getElementById('rule-fields').style.display = type==='rule' ? '' : 'none';
+  document.getElementById('cutoff-fields').style.display = type==='cutoff' ? '' : 'none';
+}
+
+function buildQueueItem() {
+  const type = document.getElementById('entry-type').value;
+  if (type === 'rule') {
+    return {
+      id: 'q-' + Date.now(),
+      type: 'RULE',
+      ruleId: document.getElementById('rule-id').value || 'AE_RULE',
+      phase: document.getElementById('rule-phase').value,
+      segment: document.getElementById('rule-segment').value,
+      operator: document.getElementById('rule-operator').value,
+      cutoff: document.getElementById('rule-cutoff').value,
+      description: document.getElementById('rule-desc').value,
+      by: document.getElementById('submitted-by').value,
+      env: document.getElementById('target-env').value,
+      status: 'pending',
+    };
+  } else {
+    return {
+      id: 'q-' + Date.now(),
+      type: 'CUTOFF',
+      ruleId: document.getElementById('rule-id').value,
+      grade: document.getElementById('co-grade').value,
+      channel: document.getElementById('co-channel').value,
+      state: document.getElementById('co-state').value,
+      value: document.getElementById('co-value').value,
+      by: document.getElementById('submitted-by').value,
+      env: document.getElementById('target-env').value,
+      status: 'pending',
+    };
+  }
+}
+
+function addToQueue() {
+  const item = buildQueueItem();
+  queueItems.push(item);
+  renderQueue();
+  pushLog('info', `[QUEUED] ${item.type} — ${item.ruleId} (${item.phase||item.grade+'/'+item.channel})`);
+}
+
+function submitSingle() {
+  const item = buildQueueItem();
+  item.status = 'running';
+  queueItems.push(item);
+  renderQueue();
+  pushLog('info', `[SUBMIT] ${item.type} — ${item.ruleId} → ${item.env}`);
+  processItem(item, () => renderQueue());
+}
+
+function parseBatchCSV() {
+  const csv = document.getElementById('batch-csv').value;
+  const lines = csv.split('\n').map(l=>l.trim()).filter(Boolean);
+  let added = 0;
+  lines.forEach(line => {
+    const parts = line.split(',').map(p=>p.trim());
+    if (parts.length < 4) return;
+    queueItems.push({
+      id:'q-'+Date.now()+'-'+Math.random(),
+      type:'RULE',
+      ruleId:parts[0], phase:parts[1]||'Before Data Pull',
+      segment:parts[2]||'All', operator:parts[3]||'>=',
+      cutoff:parts[4]||'', description:parts[5]||'',
+      by:'lead-analyst', env:'TEST', status:'pending',
+    });
+    added++;
+  });
+  renderQueue();
+  pushLog('info', `[PARSE] ${added} rules parsed from CSV and added to queue`);
+}
+
+function runBatch() { parseBatchCSV(); setTimeout(runQueue, 200); }
+
+function renderQueue() {
+  const el = document.getElementById('batch-queue');
+  const btn = document.getElementById('run-queue-btn');
+  if (!el) return;
+  if (queueItems.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:20px">No items in queue yet</div>';
+    btn.disabled = true;
+  } else {
+    btn.disabled = false;
+    el.innerHTML = queueItems.map(item => `
+      <div class="queue-item ${item.status}" id="${item.id}">
+        <div style="flex-shrink:0;font-size:16px">${{rule:'📋',cutoff:'🔢'}[item.type.toLowerCase()]||'📄'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:12px;color:var(--navy);font-family:'JetBrains Mono',monospace">${item.ruleId}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">
+            ${item.type} · ${item.phase||item.grade+'/'+item.channel} · ${item.segment||item.state} · ${item.operator||''} ${item.cutoff||item.value} · ${item.env}
+          </div>
+        </div>
+        <span class="queue-badge badge-${item.status}">${item.status.toUpperCase()}</span>
+        ${item.status==='pending'?`<button onclick="removeFromQueue('${item.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">×</button>`:''}
+      </div>`).join('');
+  }
+  document.getElementById('queue-count').textContent = `(${queueItems.length} item${queueItems.length!==1?'s':''})`;
+}
+
+function removeFromQueue(id) { queueItems = queueItems.filter(i=>i.id!==id); renderQueue(); }
+function clearQueue() { queueItems=[]; renderQueue(); pushLog('warn','[CLEAR] Queue cleared'); }
+
+function processItem(item, cb) {
+  item.status = 'running';
+  if (cb) cb();
+  const delay = 600 + Math.random()*600;
+  setTimeout(() => {
+    // Simulate 90% success, 10% conflict error
+    const ok = Math.random() > 0.1;
+    item.status = ok ? 'success' : 'error';
+    if (ok) {
+      pushLog('ok', `[OK] ${item.type} ${item.ruleId} committed to ${item.env} — id:${Math.floor(Math.random()*9000+1000)}`);
+    } else {
+      pushLog('err', `[ERR] ${item.ruleId} — conflict detected with existing rule in ${item.env}. Roll back.`);
+    }
+    if (cb) cb();
+  }, delay);
+}
+
+function runQueue() {
+  const pending = queueItems.filter(i=>i.status==='pending');
+  if (!pending.length) { pushLog('warn','[WARN] No pending items in queue'); return; }
+  pushLog('info', `[RUN] Starting batch — ${pending.length} items`);
+  pending.forEach((item, i) => setTimeout(() => processItem(item, renderQueue), i * 700));
+}
+
+function pushLog(type, msg) {
+  const clsMap = { ok:'log-line-ok', err:'log-line-err', info:'log-line-info', warn:'log-line-warn' };
+  logLines.push({ cls: clsMap[type]||'log-line-info', text: '[' + new Date().toLocaleTimeString() + '] ' + msg });
+  if (logLines.length > 60) logLines.shift();
+  const el = document.getElementById('result-log');
+  if (!el) return;
+  el.innerHTML = logLines.map(l => `<div class="${l.cls}">${l.text}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ─── Feature cards ────────────────────────────────────────────────────────────
+function highlightFeat(el, bg, color) {
+  document.querySelectorAll('.feat-card').forEach(c=>{ c.style.background=''; c.style.borderColor=''; c.style.transform=''; });
+  el.style.background=bg; el.style.borderColor=color; el.style.transform='translateY(-3px)';
+}
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+calcOffer();
+buildMatrix();
+runGrade();
+
+// wire approver email live update
+document.getElementById('approver-email')?.addEventListener('input', updateEmailPreview);
+document.getElementById('cc-email')?.addEventListener('input', updateEmailPreview);
+
+</script>
+</body>
+</html>
