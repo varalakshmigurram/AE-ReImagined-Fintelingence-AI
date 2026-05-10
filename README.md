@@ -187,15 +187,15 @@ Similar pattern at `/api/constraints/channels`
 
 ---
 
-## 🗄 Switching to PostgreSQL (Production)
+## 🗄 Switching to MYSQL (Production)
 
 Replace in `application.properties`:
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/ruleenginedb
-spring.datasource.driver-class-name=org.postgresql.Driver
-spring.datasource.username=postgres
+spring.datasource.url=jdbc:mysql://localhost:5432/ruleenginedb
+spring.datasource.driver-class-name=org.mysql.Driver
+spring.datasource.username=root
 spring.datasource.password=your_password
-spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
 spring.jpa.hibernate.ddl-auto=update
 ```
 
