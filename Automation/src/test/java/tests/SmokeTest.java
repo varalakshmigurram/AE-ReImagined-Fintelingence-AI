@@ -54,6 +54,30 @@ public class SmokeTest {
     @FindBy(xpath = "//span[text()='Version History Log']")
     WebElement versionHistoryLogMenu;
 
+    @FindBy(xpath = "//span[text()='Offer Calculator']")
+    WebElement offerCalculatorMenu;
+
+    @FindBy(xpath = "//span[text()='Grade Engine']")
+    WebElement gradeEngineMenu;
+
+    @FindBy(xpath = "//span[text()='Conflict Detector']")
+    WebElement conflictDetectorMenu;
+
+    @FindBy(xpath = "//span[text()='Segment Heatmap']")
+    WebElement segmentHeatmapMenu;
+
+    @FindBy(xpath = "//span[text()='Bypass Manager']")
+    WebElement bypassManagerMenu;
+
+    @FindBy(xpath = "//span[text()='APR Delta Editor']")
+    WebElement aprDeltaEditorMenu;
+
+    @FindBy(xpath = "//span[text()='Dedup Visualiser']")
+    WebElement dedupVisualiserMenu;
+
+    @FindBy(xpath = "//span[text()='Lineage Tracer']")
+    WebElement lineageTracerMenu;
+
     // Action Locators
     @FindBy(xpath = "(//div[@class='row-actions']//button[@title='Edit'])[1]")
     WebElement rulesEditButton;
