@@ -90,7 +90,7 @@ public class Rule {
     }
 
     public enum RulePhase {
-        BEFORE_DATA_PULL, TU_PULL, POST_CREDIT_GRADE, CREDIT_GRADE, OFFER_LOGIC
+        BEFORE_DATA_PULL, TU_PULL, CCR_PULL, POST_CREDIT_GRADE, CREDIT_GRADE, OFFER_LOGIC
     }
 
     public enum RuleStatus {

@@ -26,6 +26,10 @@ public class RuleSaveRequest {
     /** Human-readable description of what this version changes */
     private String versionDescription;
 
+    /** Target environment: TEST (default) or PROD */
+    @Builder.Default
+    private String environment = "TEST";
+
     private Map<String, List<RuleDefinition>> rulesByGroup;
     private Map<String, Map<String, Object>> cutoffs;
 

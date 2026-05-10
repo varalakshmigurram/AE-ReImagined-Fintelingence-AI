@@ -24,10 +24,15 @@ export default function ChannelConfig() {
   const load = () => { setLoading(true); getChannels(env).then(setChannels).finally(() => setLoading(false)) }
   useEffect(() => { load() }, [env])
 
-  const handleSave = async (data) => {
+  const handleSave = async (data, submitAfter = false) => {
     try {
-      await upsertChannel({ ...data, environment: env })
-      toast.success(`Channel ${data.channelCode} saved`)
+      const savedChannel = await upsertChannel({ ...data, environment: env })
+      if (submitAfter && (savedChannel.approvalStatus === 'DRAFT' || savedChannel.approvalStatus === 'REJECTED')) {
+        await submitChannelForReview(savedChannel.id)
+        toast.success(`${CHANNEL_META[data.channelCode]?.label || data.channelCode} saved and submitted for review`)
+      } else {
+        toast.success(`Channel ${data.channelCode} saved and email notification sent`)
+      }
       setShowModal(false); setEditChannel(null); load()
     } catch (e) {
       const msg = e?.response?.data?.message || e?.response?.data || e?.message || 'Error saving channel'

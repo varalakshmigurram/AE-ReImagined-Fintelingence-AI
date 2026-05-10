@@ -39,10 +39,10 @@ public class DataSeedService implements CommandLineRunner {
                  "All", null, "1", Rule.RulePhase.BEFORE_DATA_PULL),
             rule("AE_INVALID_ADDRESS", "1a", "If address is PO BOX, then reject the lead",
                  "All", null, "1", Rule.RulePhase.BEFORE_DATA_PULL),
-            rule("AE_INVALID_REQUSET_AMOUNT", "2a", "If requested loan amount > Cutoff, then reject the lead. Segments: CMPQ/CMACT=$15,000 | QS/ML=$10,000 | CKPQ=$2,000 | MO=$1,000 | LT=$8,000",
+            rule("AE_INVALID_REQUEST_AMOUNT", "2a", "If requested loan amount > Cutoff, then reject the lead. Segments: CMPQ/CMACT=$15,000 | QS/ML=$10,000 | CKPQ=$2,000 | MO=$1,000 | LT=$8,000",
                  "CMPQ, CMACT, QS, ML, CKPQ, MO, LT", "CMPQ/CMACT=15000, QS/ML=10000, CKPQ=2000, MO=1000, LT=8000", "1", Rule.RulePhase.BEFORE_DATA_PULL),
-            rule("AE_PTSMI", "3", "PTSMI rule: IF (repayment amount / customer stated monthly income) > Cutoff then reject. APR=59.5%, Term=36m, State min loan amount",
-                 "Segment_flag = Others", "0.115", "1", Rule.RulePhase.BEFORE_DATA_PULL),
+            rule("AE_PTSMI", "3", "PTSMI rule: IF (repayment amount / customer stated monthly income) > Cutoff then reject. APR=59.5%, Term=36m, State min loan amount. Others=11.50%, E1_E2=7.23%",
+                 "Segment_flag = Others, E1_E2", "Others=0.115, E1_E2=0.0723", "Others=1, E1_E2=1", Rule.RulePhase.BEFORE_DATA_PULL),
             rule("AE_LTI", "4", "LTI rule: Assuming state min loan amount, If (loan amount / customer stated annual income) > Cutoff then reject the lead",
                  "Segment_flag = Others", "0.3", "1", Rule.RulePhase.BEFORE_DATA_PULL),
             rule("AE_DEDUPE_DAYS", "5", "Dedup: A customer already seen in last 30 days and not offered in any affiliate channel - reject the lead",
@@ -73,6 +73,40 @@ public class DataSeedService implements CommandLineRunner {
                  "CKPQ, LT, ML, MO, QS and Segment_flag = Others", "Cutoff1=6, Cutoff2=50", null, Rule.RulePhase.TU_PULL),
             rule("AE_HighChargeOffTrades", "7j1", "If CO02S (charged-off trades in past 12m) > 6, reject",
                  "Segment_flag = E1_E2", "Cutoff=6", "1", Rule.RulePhase.TU_PULL),
+            rule("AE_LowUnsecureInstallmentTrades", "7k", "If US015 (Number of unsecured installment trades) < Cutoff, reject",
+                 "Segment_flag = E1_E2", "Cutoff=2", "1", Rule.RulePhase.TU_PULL),
+            rule("AE_HighPercentTradesDelinquent", "7l", "If SQ515 (Percentage of trades ever delinquent) > Cutoff, reject",
+                 "Segment_flag = E1_E2", "Cutoff=50", "1", Rule.RulePhase.TU_PULL),
+            rule("AE_V11_Market_TU", "l1", "V11_Market_TU_model_score < Cutoff, then reject",
+                 "All", "505", "1", Rule.RulePhase.TU_PULL),
+            rule("AE_V11_ADF_TU", "l2", "V11_ADF_TU_model_score < Cutoff, then reject",
+                 "All", "505", "1", Rule.RulePhase.TU_PULL),
+            rule("AE_EMPLOYER_RULE", "a", "Application inconsistency (Stability): Number of employers reported in last 6 months >= cutoff (CCR)",
+                 "All", "8", "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_PAYMENT_DEFAULTS", "b", "Payment defaults: If (Total charged-off loan accounts seen in last 15 days >= Cutoff (CCR)), reject the lead",
+                 "All", "Cutoff_1=1800, Cutoff_2=5", "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_AFTER_TU_CCR_LOAN_STACKING", "c", "Loan stacking: If (Number of loans seen in last 15 days >= Cutoff (CCR)), reject the lead",
+                 "All", "8", "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_CCI_ACTIVE_DUTY", "d", "If active military and not eligible for sub-36 loan, reject the lead",
+                 "All", null, "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_CCR_SCORE", "e", "If CCR_Score < CUTOFF 1 or CCR_Score < CUTOFF 2, then reject",
+                 "All", "Cutoff_1=750, Cutoff_2=750", "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_V11_CCR", "f", "V11_CCR_model_score < Cutoff, then reject",
+                 "All", "505", "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_V11_ADF_TU_CCR", "g", "V11_ADF_TU_CCR_model_score < Cutoff, then reject",
+                 "All", "505", "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_V11_Market_TU_CCR", "h", "V11_Market_TU_CCR_model_score < Cutoff, then reject",
+                 "All", "505", "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_CCI_SOCIAL_SECURITY_DECEASED", "i", "If deceased, reject the lead",
+                 "All", null, "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_SSN_INVALID", "j", "If SSN invalid, reject the lead",
+                 "All", null, "1", Rule.RulePhase.CCR_PULL),
+            rule("AE_INVALID_REQUEST_AMOUNT_E1_E2", "2b", "If requested loan amount > 6000, then reject the lead",
+                 "AE_Credit_Grade in E1_E2", "Cutoff=6000", "1", Rule.RulePhase.POST_CREDIT_GRADE),
+            rule("AE_NO_OFFER", "j", "If all the above checks passed, try to generate offer (Step 3 to 6)",
+                 "All", null, "1", Rule.RulePhase.POST_CREDIT_GRADE),
+            rule("AE_THIRD_PARTY_ERROR", "k", "If any exception (technical or third party pull) at any stage, reject the lead",
+                 "All", null, "1", Rule.RulePhase.BEFORE_DATA_PULL),
             rule("AE_CREDIT_GRADE_REQUEST_AMOUNT", "a", "If requested loan amount > Cutoff, reject the lead",
                  "AE_Credit_Grade in E1_E2", "Cutoff=6000", "100%", Rule.RulePhase.POST_CREDIT_GRADE),
             rule("AE_CREDIT_GRADE_CHARGE_OFF_TRADES", "b", "If CO025 (Number of charged-off trades in past 12 months) > Cutoff then Reject the Lead",
@@ -122,10 +156,11 @@ public class DataSeedService implements CommandLineRunner {
             {"UT"}, {"VA"}, {"AL"}, {"ID"}, {"MO"}
         };
 
+        List<StateConstraint> stateConstraints = new java.util.ArrayList<>();
         for (String[] s : states) {
             String state = s[0];
             String onOff = s.length > 1 ? s[1] : null;
-            double minLoan = "HI".equals(state) ? 1600 : 1000;
+            double minLoan = "HI".equals(state) ? 900.0 : 1000.0;
 
             StateConstraint sc = StateConstraint.builder()
                     .stateCode(state).minLoanAmount(minLoan).maxLoanAmount(10000.0)
@@ -136,7 +171,7 @@ public class DataSeedService implements CommandLineRunner {
                     .approvalStatus(Rule.ApprovalStatus.APPROVED)
                     .submittedBy("system").approvedBy("system")
                     .build();
-            stateRepo.save(sc);
+            stateConstraints.add(sc);
         }
 
         // WI has special origination fee
@@ -149,22 +184,72 @@ public class DataSeedService implements CommandLineRunner {
                 .approvalStatus(Rule.ApprovalStatus.APPROVED)
                 .submittedBy("system").approvedBy("system")
                 .build();
-        stateRepo.save(wi);
+        stateConstraints.add(wi);
+
+        stateRepo.saveAll(stateConstraints);
     }
 
     private void seedChannelConstraints() {
         if (channelRepo.count() > 0) return;
 
-        String[] channels = {"CMPQ", "CKPQ", "CMACT", "QS", "LT", "ML", "MO"};
-        for (String ch : channels) {
-            ChannelConstraint cc = ChannelConstraint.builder()
-                    .channelCode(ch).minLoanAmount(1000.0).maxLoanAmount(10000.0)
-                    .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(36)
-                    .environment(Rule.Environment.TEST)
-                    .approvalStatus(Rule.ApprovalStatus.APPROVED)
-                    .submittedBy("system").approvedBy("system")
-                    .build();
-            channelRepo.save(cc);
-        }
+        List<ChannelConstraint> channelConstraints = new java.util.ArrayList<>();
+        
+        // CMPQ
+        channelConstraints.add(ChannelConstraint.builder()
+                .channelCode("CMPQ").minLoanAmount(1000.0).maxLoanAmount(10000.0)
+                .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(36)
+                .environment(Rule.Environment.TEST)
+                .approvalStatus(Rule.ApprovalStatus.APPROVED)
+                .submittedBy("system").approvedBy("system").build());
+        
+        // CKPQ
+        channelConstraints.add(ChannelConstraint.builder()
+                .channelCode("CKPQ").minLoanAmount(1000.0).maxLoanAmount(10000.0)
+                .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(36)
+                .environment(Rule.Environment.TEST)
+                .approvalStatus(Rule.ApprovalStatus.APPROVED)
+                .submittedBy("system").approvedBy("system").build());
+        
+        // CMACT
+        channelConstraints.add(ChannelConstraint.builder()
+                .channelCode("CMACT").minLoanAmount(1000.0).maxLoanAmount(10000.0)
+                .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(36)
+                .environment(Rule.Environment.TEST)
+                .approvalStatus(Rule.ApprovalStatus.APPROVED)
+                .submittedBy("system").approvedBy("system").build());
+        
+        // QS - Special case: Max Term 25
+        channelConstraints.add(ChannelConstraint.builder()
+                .channelCode("QS").minLoanAmount(1000.0).maxLoanAmount(10000.0)
+                .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(25)
+                .environment(Rule.Environment.TEST)
+                .approvalStatus(Rule.ApprovalStatus.APPROVED)
+                .submittedBy("system").approvedBy("system").build());
+        
+        // LT
+        channelConstraints.add(ChannelConstraint.builder()
+                .channelCode("LT").minLoanAmount(1000.0).maxLoanAmount(10000.0)
+                .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(36)
+                .environment(Rule.Environment.TEST)
+                .approvalStatus(Rule.ApprovalStatus.APPROVED)
+                .submittedBy("system").approvedBy("system").build());
+        
+        // ML
+        channelConstraints.add(ChannelConstraint.builder()
+                .channelCode("ML").minLoanAmount(1000.0).maxLoanAmount(10000.0)
+                .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(36)
+                .environment(Rule.Environment.TEST)
+                .approvalStatus(Rule.ApprovalStatus.APPROVED)
+                .submittedBy("system").approvedBy("system").build());
+        
+        // MO
+        channelConstraints.add(ChannelConstraint.builder()
+                .channelCode("MO").minLoanAmount(1000.0).maxLoanAmount(10000.0)
+                .minApr(36.0).maxApr(179.9).minTermMonths(12).maxTermMonths(36)
+                .environment(Rule.Environment.TEST)
+                .approvalStatus(Rule.ApprovalStatus.APPROVED)
+                .submittedBy("system").approvedBy("system").build());
+        
+        channelRepo.saveAll(channelConstraints);
     }
 }

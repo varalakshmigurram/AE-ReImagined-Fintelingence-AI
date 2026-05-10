@@ -3,7 +3,9 @@ package com.adf.ruleengine.service;
 import com.adf.ruleengine.dto.RuleDto;
 import com.adf.ruleengine.model.AuditLog;
 import com.adf.ruleengine.model.Rule;
+import com.adf.ruleengine.model.RuleLineage;
 import com.adf.ruleengine.repository.AuditLogRepository;
+import com.adf.ruleengine.repository.RuleLineageRepository;
 import com.adf.ruleengine.repository.RuleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
@@ -31,6 +34,7 @@ public class RuleService {
 
     private final RuleRepository ruleRepository;
     private final AuditLogRepository auditLogRepository;
+    private final RuleLineageRepository lineageRepository;
     private final ObjectMapper objectMapper;
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
@@ -72,6 +76,8 @@ public class RuleService {
 
         Rule saved = ruleRepository.save(rule);
         logAudit("RULE", saved.getId().toString(), "CREATED", createdBy, null, toJson(saved), null);
+        writeLineage(saved, "SEED", createdBy, "system-seed", null, null, null,
+                "Initial rule created — " + saved.getRuleId(), null, saved.getCutoffs());
         return toResponse(saved);
     }
 
@@ -92,6 +98,15 @@ public class RuleService {
 
         Rule saved = ruleRepository.save(existing);
         logAudit("RULE", saved.getId().toString(), "UPDATED", updatedBy, beforeSnapshot, toJson(saved), null);
+        // Detect what changed and record lineage
+        String oldCutoff = extractCutoffs(beforeSnapshot);
+        if (oldCutoff != null && !oldCutoff.equals(saved.getCutoffs())) {
+            writeLineage(saved, "CUTOFF_CHANGE", updatedBy, null, null, "Rules",
+                    "Cutoffs", "Cutoff updated for " + saved.getRuleId(), oldCutoff, saved.getCutoffs());
+        } else {
+            writeLineage(saved, "CUTOFF_CHANGE", updatedBy, null, null, "Rules",
+                    "Updated", "Rule updated — " + saved.getRuleId(), oldCutoff, saved.getCutoffs());
+        }
         sendUpdateEmail(saved, updatedBy);
         return toResponse(saved);
     }
@@ -178,11 +193,47 @@ public class RuleService {
         }
 
         logAudit("RULE", prodRule.getId().toString(), "PROMOTED_TO_PROD", promotedBy, null, toJson(prodRule), null);
+        writeLineage(prodRule, "PROMOTED", promotedBy, null, null, null, null,
+                "Rule promoted to PROD by " + promotedBy, "TEST", "PROD");
         return toResponse(prodRule);
     }
 
     public List<AuditLog> getAuditHistory(Long ruleId) {
         return auditLogRepository.findByEntityTypeAndEntityIdOrderByTimestampDesc("RULE", ruleId.toString());
+    }
+
+    private void writeLineage(Rule rule, String changeType, String performedBy,
+                              String sessionId, String sourceFile, String sourceSheet,
+                              String sourceCol, String description,
+                              String valueBefore, String valueAfter) {
+        try {
+            RuleLineage lin = RuleLineage.builder()
+                    .ruleId(rule.getId())
+                    .ruleIdStr(rule.getRuleId())
+                    .changeType(changeType)
+                    .performedBy(performedBy)
+                    .sessionId(sessionId)
+                    .sourceFile(sourceFile)
+                    .sourceSheet(sourceSheet)
+                    .sourceCol(sourceCol)
+                    .valueBefore(valueBefore)
+                    .valueAfter(valueAfter)
+                    .description(description)
+                    .changedAt(java.time.LocalDateTime.now())
+                    .build();
+            lineageRepository.save(lin);
+        } catch (Exception e) {
+            log.warn("Failed to write lineage event for rule {}: {}", rule.getRuleId(), e.getMessage());
+        }
+    }
+
+    private String extractCutoffs(String json) {
+        if (json == null) return null;
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(json);
+            com.fasterxml.jackson.databind.JsonNode c = node.get("cutoffs");
+            return c != null && !c.isNull() ? c.asText() : null;
+        } catch (Exception e) { return null; }
     }
 
     private void logAudit(String entityType, String entityId, String action,
@@ -231,6 +282,7 @@ public class RuleService {
                 .build();
     }
 
+    @Async
     private void sendUpdateEmail(Rule rule, String updatedBy) {
         try {
             if (notificationEmails == null || notificationEmails.isBlank()) {

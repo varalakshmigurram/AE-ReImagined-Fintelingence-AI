@@ -20,7 +20,7 @@ export default function ChannelModal({ channel, onSave, onClose }) {
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, submitAfter = false) => {
     e.preventDefault(); setSaving(true)
     const cleaned = {
       ...form,
@@ -29,7 +29,7 @@ export default function ChannelModal({ channel, onSave, onClose }) {
       suppressedState: form.suppressedState === '' ? null : form.suppressedState,
       campaign: form.campaign === '' ? null : form.campaign,
     }
-    try { await onSave(cleaned) } finally { setSaving(false) }
+    try { await onSave(cleaned, submitAfter) } finally { setSaving(false) }
   }
 
   return (
@@ -93,7 +93,12 @@ export default function ChannelModal({ channel, onSave, onClose }) {
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            {channel && (channel.approvalStatus === 'DRAFT' || channel.approvalStatus === 'REJECTED') && (
+              <button type="button" className="btn btn-secondary" disabled={saving} onClick={(e) => handleSubmit(e, true)}>
+                {saving ? 'Saving…' : 'Save & Submit'}
+              </button>
+            )}
+            <button type="submit" className="btn btn-primary" disabled={saving} onClick={(e) => handleSubmit(e, false)}>
               {saving ? 'Saving…' : (channel ? 'Update Channel' : 'Add Channel')}
             </button>
           </div>

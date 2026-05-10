@@ -20,6 +20,7 @@ export default function PromoteToProd() {
   const [loading, setLoading] = useState(true)
   const [diffItem, setDiffItem] = useState(null)
   const [promoting, setPromoting] = useState(null)
+  const [selected, setSelected] = useState(new Set())
 
   const load = () => {
     setLoading(true)
@@ -57,6 +58,39 @@ export default function PromoteToProd() {
     }
   }
 
+  const toggleSelect = (itemId) => {
+    const newSelected = new Set(selected)
+    if (newSelected.has(itemId)) newSelected.delete(itemId)
+    else newSelected.add(itemId)
+    setSelected(newSelected)
+  }
+
+  const toggleSelectAll = () => {
+    if (selected.size === promotable.length) setSelected(new Set())
+    else setSelected(new Set(promotable.map(i => i.id)))
+  }
+
+  const handleBatchPromote = async () => {
+    if (selected.size === 0) return
+    setPromoting('batch')
+    let promoted = 0, failed = 0
+    for (const itemId of selected) {
+      try {
+        const item = promotable.find(i => i.id === itemId)
+        if (type === 'rule') await promoteRule(item.id, PROMOTER)
+        if (type === 'state') await promoteState(item.id, PROMOTER)
+        if (type === 'channel') await promoteChannel(item.id, PROMOTER)
+        promoted++
+      } catch (e) {
+        failed++
+      }
+    }
+    toast.success(`✅ Promoted ${promoted} item${promoted !== 1 ? 's' : ''} to PRODUCTION${failed > 0 ? ` (${failed} failed)` : ''}`)
+    setSelected(new Set())
+    load()
+    setPromoting(null)
+  }
+
   const testItems = { rules: testRules, states: testStates, channels: testChannels }[tab]
   const type = tab === 'rules' ? 'rule' : tab === 'states' ? 'state' : 'channel'
   const getKey = (item) => item.ruleId ?? item.stateCode ?? item.channelCode
@@ -92,7 +126,7 @@ export default function PromoteToProd() {
       <div style={{ marginBottom: 16 }}>
         <div className="tabs">
           {['rules', 'states', 'channels'].map(t => (
-            <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+            <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => { setTab(t); setSelected(new Set()) }}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
               {t === 'rules' && <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--success)' }}>({testRules.filter(r => r.approvalStatus === 'APPROVED').length} ready)</span>}
               {t === 'states' && <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--success)' }}>({testStates.filter(s => s.approvalStatus === 'APPROVED').length} ready)</span>}
@@ -109,16 +143,35 @@ export default function PromoteToProd() {
           {/* Promotable */}
           {promotable.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle size={13} /> {promotable.length} Ready to Promote
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CheckCircle size={13} /> {promotable.length} Ready to Promote
+                </div>
+                {promotable.length > 1 && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={selected.size === promotable.length} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+                      Select All
+                    </label>
+                    {selected.size > 0 && (
+                      <button className="btn btn-success" disabled={promoting === 'batch'} onClick={handleBatchPromote} style={{ minWidth: 140 }}>
+                        {promoting === 'batch'
+                          ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Promoting {selected.size}…</>
+                          : <><Zap size={13} /> Promote {selected.size} to PROD</>
+                        }
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               {promotable.map(item => {
                 const key = getKey(item)
                 const prod = getProdVersion(type, key)
                 const hasDiff = !!prod
                 return (
-                  <div key={item.id} className="card" style={{ marginBottom: 10, borderColor: 'rgba(34,197,94,0.25)' }}>
+                  <div key={item.id} className="card" style={{ marginBottom: 10, borderColor: selected.has(item.id) ? 'var(--success)' : 'rgba(34,197,94,0.25)', background: selected.has(item.id) ? 'rgba(34,197,94,0.05)' : 'transparent' }}>
                     <div style={{ padding: '14px 20px', display: 'flex', gap: 14, alignItems: 'center' }}>
+                      <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleSelect(item.id)} style={{ cursor: 'pointer', width: 18, height: 18 }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                           <span style={{ fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--text)', fontSize: 14 }}>{key}</span>

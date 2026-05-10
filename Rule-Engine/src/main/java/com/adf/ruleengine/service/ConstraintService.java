@@ -10,6 +10,8 @@ import com.adf.ruleengine.repository.ChannelConstraintRepository;
 import com.adf.ruleengine.repository.StateConstraintRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,12 +20,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ConstraintService {
 
     private final StateConstraintRepository stateRepo;
     private final ChannelConstraintRepository channelRepo;
     private final AuditLogRepository auditLogRepo;
     private final ObjectMapper objectMapper;
+    private final EmailService emailService;
 
     // ─── State Constraints ───────────────────────────────────────────────
 
@@ -67,6 +71,10 @@ public class ConstraintService {
         StateConstraint saved = stateRepo.save(sc);
         String action = before == null ? "CREATED" : "UPDATED";
         logAudit("STATE_CONSTRAINT", saved.getId().toString(), action, user, before, toJson(saved), null);
+        
+        // Send email notification asynchronously
+        sendStateConstraintEmailAsync(saved, action, user);
+        
         return toStateResponse(saved);
     }
 
@@ -166,6 +174,10 @@ public class ConstraintService {
         ChannelConstraint saved = channelRepo.save(cc);
         String action = before == null ? "CREATED" : "UPDATED";
         logAudit("CHANNEL_CONSTRAINT", saved.getId().toString(), action, user, before, toJson(saved), null);
+        
+        // Send email notification asynchronously
+        sendChannelConstraintEmailAsync(saved, action, user);
+        
         return toChannelResponse(saved);
     }
 
@@ -269,5 +281,23 @@ public class ConstraintService {
                 .previousSnapshot(cc.getPreviousSnapshot())
                 .createdAt(cc.getCreatedAt()).updatedAt(cc.getUpdatedAt())
                 .build();
+    }
+
+    @Async
+    private void sendStateConstraintEmailAsync(StateConstraint sc, String action, String user) {
+        try {
+            emailService.sendStateConstraintNotification(sc, action, user);
+        } catch (Exception e) {
+            log.warn("Failed to send email notification for state constraint: {}", sc.getStateCode(), e);
+        }
+    }
+
+    @Async
+    private void sendChannelConstraintEmailAsync(ChannelConstraint cc, String action, String user) {
+        try {
+            emailService.sendChannelConstraintNotification(cc, action, user);
+        } catch (Exception e) {
+            log.warn("Failed to send email notification for channel constraint: {}", cc.getChannelCode(), e);
+        }
     }
 }

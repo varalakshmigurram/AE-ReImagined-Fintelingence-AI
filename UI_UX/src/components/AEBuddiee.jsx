@@ -20,6 +20,14 @@ const ROUTES = {
   '/embedded':        { label: 'Engine API Tester',      desc: 'Test rule execution with custom fact sets' },
   '/config-versions': { label: 'Version Manager',        desc: 'Flyway-style semantic version history' },
   '/simulator':       { label: 'Rule Impact Simulator',  desc: 'Simulate applicant profiles against active rules' },
+  '/offer-calculator': { label: 'Offer Calculator',      desc: 'Calculate loan offers with AI precision' },
+  '/grade-calculator': { label: 'Grade Engine',          desc: 'Credit grade calculation and analysis' },
+  '/conflict-detector': { label: 'Conflict Detector',    desc: 'Identify rule conflicts and overlaps' },
+  '/segment-heatmap':  { label: 'Segment Heatmap',       desc: 'Visualize rule coverage by segment' },
+  '/bypass-manager':   { label: 'Bypass Manager',        desc: 'Manage rule bypasses and exceptions' },
+  '/apr-config':       { label: 'APR Delta Editor',      desc: 'Configure APR adjustments by channel' },
+  '/dedup-visualiser': { label: 'Dedup Visualiser',      desc: 'Visualize duplicate detection rules' },
+  '/lineage-tracer':   { label: 'Lineage Tracer',        desc: 'Track data lineage and dependencies' },
 }
 
 const CHANNEL_NAMES = {
@@ -49,6 +57,14 @@ function detectIntent(text) {
     { patterns:['engine','api tester','execute','simulate','test rule'], route:'/simulator' },
     { patterns:['version manager','flyway','semantic version','collision'], route:'/config-versions' },
     { patterns:['simulator','impact','applicant','profile','scenario'],  route:'/simulator' },
+    { patterns:['offer calculator','calculate offer','loan offer','offer pricing'], route:'/offer-calculator' },
+    { patterns:['grade calculator','grade engine','credit grade','grade calculation'], route:'/grade-calculator' },
+    { patterns:['conflict detector','conflict detection','rule conflict','overlap'], route:'/conflict-detector' },
+    { patterns:['segment heatmap','heatmap','segment coverage','coverage map'], route:'/segment-heatmap' },
+    { patterns:['bypass manager','bypass','exception','override'], route:'/bypass-manager' },
+    { patterns:['apr','apr delta','apr config','apr adjustment'], route:'/apr-config' },
+    { patterns:['dedup','duplicate','dedup visualiser','deduplication'], route:'/dedup-visualiser' },
+    { patterns:['lineage','lineage tracer','data lineage','dependency','trace'], route:'/lineage-tracer' },
   ]
 
   for (const {patterns, route} of navMap) {
@@ -103,15 +119,15 @@ function generateResponse(intent, text, navigate) {
   if (intent.type === 'help') {
     return {
       text: `I'm the **AE Buddiee** — your AI guide to the AE Rule Engine. I can:\n\n• **Navigate** you to any page — just say "take me to the Review Queue" or "open Rule Builder"\n• **Explain** concepts — ask "What is a cutoff?" or "How does the UW ingestion work?"\n• **Guide** your workflow — ask "How do I approve a rule?" or "Where do I upload the Excel spec?"\n\nWhat would you like to do?`,
-      suggestions: ['Show me the Analytics', 'How do I build a rule?', 'Take me to Review Queue', 'What is UW ingestion?', 'Open the Simulator'],
+      suggestions: ['Show me Analytics', 'Build a rule', 'Review Queue', 'UW ingestion', 'Run Simulator', 'Offer Calculator', 'Grade Engine', 'Cutoff Tracker', 'Conflict Detector', 'Version History'],
     }
   }
 
   // Fallback with suggestions
-  const suggestions = Object.entries(ROUTES).slice(0, 5).map(([, v]) => v.label)
+  const suggestions = Object.entries(ROUTES).slice(0, 10).map(([, v]) => v.label)
   return {
     text: `I'm not sure I understood that. I can help you navigate to any part of the AE Rule Engine, explain concepts, or guide you through workflows. Try asking:\n• "Take me to the Rule Builder"\n• "What is a cutoff?"\n• "How does approval work?"`,
-    suggestions: ['Show Analytics', 'Open Rule Builder', 'UW Excel ingestion', 'Review Queue', 'Cutoff Tracker'],
+    suggestions: ['Analytics', 'Rule Builder', 'UW Excel', 'Review Queue', 'Cutoff Tracker', 'Offer Calculator', 'Grade Engine', 'Simulator', 'Conflict Detector', 'Bypass Manager'],
   }
 }
 
@@ -148,7 +164,7 @@ export default function AEBuddiee() {
       setMessages([{
         role: 'bot', id: Date.now(),
         text: `👋 Hi! I'm **AE Buddiee** — your AI assistant for the AE Rule Engine.\n\nI can navigate you to any page, explain concepts, and guide you through workflows.\n\nWhat would you like to do?`,
-        suggestions: ['Show me Analytics', 'How do I build a rule?', 'Open Review Queue', 'What is UW ingestion?', 'Run the Simulator'],
+        suggestions: ['Show Analytics', 'Build a rule', 'Review Queue', 'UW ingestion', 'Simulator', 'Offer Calculator', 'Grade Engine', 'Cutoff Tracker', 'Conflict Detector', 'Bypass Manager'],
       }])
     }
     if (open) setTimeout(() => inputRef.current?.focus(), 100)
@@ -188,18 +204,18 @@ export default function AEBuddiee() {
       {/* ── Floating button ── */}
       <div style={{ position:'fixed', bottom:24, right:24, zIndex:10000 }}>
         {!open && pulse && (
-          <div style={{ position:'absolute', bottom:'100%', right:0, marginBottom:8, background:'#1C2333', color:'#F1F5F9', borderRadius:8, padding:'8px 12px', fontSize:12, whiteSpace:'nowrap', boxShadow:'0 4px 16px rgba(0,0,0,.2)', border:'1px solid rgba(255,255,255,.1)' }}>
-            <span style={{ color:'#60A5FA', fontWeight:600 }}>AE Buddiee</span> — Ask me anything!
-            <div style={{ position:'absolute', bottom:-6, right:18, width:12, height:12, background:'#1C2333', transform:'rotate(45deg)', borderRight:'1px solid rgba(255,255,255,.1)', borderBottom:'1px solid rgba(255,255,255,.1)' }}/>
+          <div style={{ position:'absolute', bottom:'100%', right:0, marginBottom:8, background:'#0F0F0F', color:'#F1F5F9', borderRadius:8, padding:'8px 12px', fontSize:12, whiteSpace:'nowrap', boxShadow:'0 4px 16px rgba(0,0,0,.3)', border:'1px solid rgba(212,175,55,.2)' }}>
+            <span style={{ color:'#D4AF37', fontWeight:600 }}>AE Buddiee</span> — Ask me anything!
+            <div style={{ position:'absolute', bottom:-6, right:18, width:12, height:12, background:'#0F0F0F', transform:'rotate(45deg)', borderRight:'1px solid rgba(212,175,55,.2)', borderBottom:'1px solid rgba(212,175,55,.2)' }}/>
           </div>
         )}
         <button
           onClick={() => setOpen(o => !o)}
           style={{
             width:54, height:54, borderRadius:'50%',
-            background: open ? '#DC2626' : 'linear-gradient(135deg,#2563EB,#1D4ED8)',
+            background: open ? '#DC2626' : 'linear-gradient(135deg,#D4AF37,#C19A1B)',
             border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow: open ? '0 4px 12px rgba(220,38,38,.4)' : '0 4px 16px rgba(37,99,235,.5)',
+            boxShadow: open ? '0 4px 12px rgba(220,38,38,.4)' : '0 4px 16px rgba(212,175,55,.5)',
             transition:'all .2s',
             position:'relative',
           }}>
@@ -219,13 +235,13 @@ export default function AEBuddiee() {
           overflow:'hidden', animation:'slideUp .2s ease',
         }}>
           {/* Header */}
-          <div style={{ padding:'14px 16px', background:'linear-gradient(135deg,#1C2333,#2563EB)', display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <Sparkles size={18} color="#fff"/>
+          <div style={{ padding:'14px 16px', background:'linear-gradient(135deg,#0F0F0F,#1A1A1A)', display:'flex', alignItems:'center', gap:10, borderBottom:'1px solid rgba(212,175,55,.2)' }}>
+            <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(212,175,55,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <Sparkles size={18} color="#D4AF37"/>
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ fontWeight:700, fontSize:14, color:'#fff' }}>AE Buddiee</div>
-              <div style={{ fontSize:11, color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', gap:4 }}>
+              <div style={{ fontWeight:700, fontSize:14, color:'#FFFFFF' }}>AE Buddiee</div>
+              <div style={{ fontSize:11, color:'rgba(212,175,55,.8)', display:'flex', alignItems:'center', gap:4 }}>
                 <div style={{ width:6, height:6, borderRadius:'50%', background:'#34D399' }}/>
                 AI-powered guide · Always online
               </div>
@@ -263,12 +279,12 @@ export default function AEBuddiee() {
                   {/* Navigation chip */}
                   {msg.navigate && (
                     <button onClick={() => navigate(msg.navigate)} style={{
-                      marginTop:6, display:'flex', alignItems:'center', gap:6, background:'#EFF6FF',
-                      border:'1px solid rgba(37,99,235,.25)', borderRadius:20, padding:'5px 12px',
-                      fontSize:12, color:'#2563EB', cursor:'pointer', fontWeight:600, transition:'all .1s',
+                      marginTop:6, display:'flex', alignItems:'center', gap:6, background:'rgba(212,175,55,.1)',
+                      border:'1px solid rgba(212,175,55,.3)', borderRadius:20, padding:'5px 12px',
+                      fontSize:12, color:'#D4AF37', cursor:'pointer', fontWeight:600, transition:'all .1s',
                     }}
-                      onMouseEnter={e=>{e.currentTarget.style.background='#DBEAFE'}}
-                      onMouseLeave={e=>{e.currentTarget.style.background='#EFF6FF'}}>
+                      onMouseEnter={e=>{e.currentTarget.style.background='rgba(212,175,55,.2)'}}
+                      onMouseLeave={e=>{e.currentTarget.style.background='rgba(212,175,55,.1)'}}>
                       <ChevronRight size={12}/> {ROUTES[msg.navigate]?.label || 'Navigate'}
                     </button>
                   )}
@@ -279,10 +295,10 @@ export default function AEBuddiee() {
                       {msg.suggestions.map(s=>[
                         <button key={s} onClick={()=>send(s)} style={{
                           padding:'4px 10px', borderRadius:20, background:'#fff',
-                          border:'1px solid #CBD5E0', fontSize:11, color:'#475569', cursor:'pointer', transition:'all .1s',
+                          border:'1px solid #D4DFE8', fontSize:11, color:'#475569', cursor:'pointer', transition:'all .1s',
                         }}
-                          onMouseEnter={e=>{e.currentTarget.style.borderColor='#2563EB';e.currentTarget.style.color='#2563EB'}}
-                          onMouseLeave={e=>{e.currentTarget.style.borderColor='#CBD5E0';e.currentTarget.style.color='#475569'}}>
+                          onMouseEnter={e=>{e.currentTarget.style.borderColor='#D4AF37';e.currentTarget.style.color='#D4AF37'}}
+                          onMouseLeave={e=>{e.currentTarget.style.borderColor='#D4DFE8';e.currentTarget.style.color='#475569'}}>
                           {s}
                         </button>
                       ])}
@@ -317,15 +333,15 @@ export default function AEBuddiee() {
               onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()}
               placeholder="Ask me anything about AE Rule Engine…"
               style={{ flex:1, border:'1px solid #E2E8F0', borderRadius:8, padding:'8px 12px', fontSize:13, fontFamily:'Inter,sans-serif', color:'#0F172A', outline:'none', transition:'border .12s' }}
-              onFocus={e=>e.target.style.borderColor='#2563EB'}
+              onFocus={e=>e.target.style.borderColor='#D4AF37'}
               onBlur={e=>e.target.style.borderColor='#E2E8F0'}
             />
             <button onClick={()=>send()} disabled={!input.trim()} style={{
-              width:36, height:36, borderRadius:8, background: input.trim() ? '#2563EB' : '#E2E8F0',
+              width:36, height:36, borderRadius:8, background: input.trim() ? '#D4AF37' : '#E2E8F0',
               border:'none', cursor: input.trim() ? 'pointer' : 'not-allowed', display:'flex', alignItems:'center', justifyContent:'center',
               transition:'all .12s',
             }}>
-              <Send size={15} color={input.trim() ? '#fff' : '#94A3B8'}/>
+              <Send size={15} color={input.trim() ? '#0F0F0F' : '#94A3B8'}/>
             </button>
           </div>
         </div>

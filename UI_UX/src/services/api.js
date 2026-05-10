@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api', timeout: 10000 })
+const api = axios.create({ baseURL: '/api', timeout: 30000 })
 
 api.interceptors.response.use(
   r => r,
@@ -57,3 +57,22 @@ export const getActiveOfferConfig = () => v1.get('/offer-config/active').then(r 
 // ─── Cutoff Entries (production tracking table) ──────────────────────────────
 export const getCutoffEntries = (groupName, env) => v1.get('/cutoffs/entries', { params: { ...(groupName?{groupName}:{}), environment:env||'TEST' } }).then(r => r.data)
 export const getCutoffGroups  = () => v1.get('/cutoffs/groups').then(r => r.data)
+
+// ─── Feature 3: Conflict Detector ───────────────────────────────────────────
+export const scanConflicts = () => api.get('/lineage/conflicts').then(r => r.data)
+
+// ─── Feature 5: Bypass Manager ──────────────────────────────────────────────
+export const getBypassEntries   = () => api.get('/bypass').then(r => r.data)
+export const addBypassEntry     = (data) => api.post('/bypass', data).then(r => r.data)
+export const bulkImportBypass   = (entries, addedBy = 'bulk-import') =>
+  api.post('/bypass/bulk', entries, { params: { addedBy } }).then(r => r.data)
+export const lookupBypass       = (ssnHash) => api.post('/bypass/lookup', { ssnHash }).then(r => r.data)
+export const deactivateBypass   = (id) => api.patch(`/bypass/${id}/deactivate`).then(r => r.data)
+export const reactivateBypass   = (id) => api.patch(`/bypass/${id}/reactivate`).then(r => r.data)
+export const deleteBypass       = (id) => api.delete(`/bypass/${id}`).then(r => r.data)
+
+// ─── Feature 8: Lineage Tracer ───────────────────────────────────────────────
+export const getRuleLineage      = (ruleDbId) => api.get(`/lineage/${ruleDbId}`).then(r => r.data)
+export const getRuleLineageByStr = (ruleIdStr) => api.get(`/lineage/str/${ruleIdStr}`).then(r => r.data)
+export const recordLineageEvent  = (entry) => api.post('/lineage', entry).then(r => r.data)
+

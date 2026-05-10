@@ -10,14 +10,18 @@ import ChannelConfig from './pages/ChannelConfig'
 import ReviewQueue from './pages/ReviewQueue'
 import PromoteToProd from './pages/PromoteToProd'
 import VersionHistoryLog from './pages/VersionHistoryLog'
-import EmbeddedRuleEngine from './pages/embedded/EmbeddedRuleEngine'
 import OfferConfigLoader from './pages/embedded/OfferConfigLoader'
-import CutoffManager from './pages/embedded/CutoffManager'
-import CutoffTracker from './pages/embedded/CutoffTracker'
 import RuleBuilder from './pages/embedded/RuleBuilder'
 import ConfigVersionManager from './pages/embedded/ConfigVersionManager'
 import UWIngestion from './pages/embedded/UWIngestion'
-import Simulator from './pages/embedded/Simulator'
+import OfferCalculator from './pages/OfferCalculator'
+import GradeCalculator from './pages/GradeCalculator'
+import ConflictDetector from './pages/ConflictDetector'
+import SegmentHeatmap from './pages/SegmentHeatmap'
+import BypassManager from './pages/BypassManager'
+import APRConfig from './pages/APRConfig'
+import DedupVisualiser from './pages/DedupVisualiser'
+import LineageTracer from './pages/LineageTracer'
 import { getPendingRules, getPendingStates, getPendingChannels } from './services/api'
 import { Toaster } from 'react-hot-toast'
 
@@ -50,13 +54,17 @@ export default function App() {
             <Route path="/promote"         element={<PromoteToProd />} />
             <Route path="/audit"           element={<VersionHistoryLog />} />
             <Route path="/uw-ingestion"    element={<UWIngestion />} />
-            <Route path="/embedded"        element={<EmbeddedRuleEngine />} />
             <Route path="/rule-builder"    element={<RuleBuilder />} />
-            <Route path="/cutoff-builder"  element={<CutoffManager />} />
-            <Route path="/cutoff-tracker"  element={<CutoffTracker />} />
             <Route path="/offer-config"    element={<OfferConfigLoader />} />
             <Route path="/config-versions" element={<ConfigVersionManager />} />
-            <Route path="/simulator"       element={<Simulator />} />
+            <Route path="/offer-calculator"   element={<OfferCalculator />} />
+            <Route path="/grade-calculator"   element={<GradeCalculator />} />
+            <Route path="/conflict-detector"  element={<ConflictDetector />} />
+            <Route path="/segment-heatmap"    element={<SegmentHeatmap />} />
+            <Route path="/bypass-manager"     element={<BypassManager />} />
+            <Route path="/apr-config"         element={<APRConfig />} />
+            <Route path="/dedup-visualiser"   element={<DedupVisualiser />} />
+            <Route path="/lineage-tracer"     element={<LineageTracer />} />
           </Routes>
         </main>
       </div>

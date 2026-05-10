@@ -21,10 +21,10 @@ export default function RuleModal({ rule, onSave, onClose }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, submitAfter = false) => {
     e.preventDefault()
     setSaving(true)
-    try { await onSave(form) } finally { setSaving(false) }
+    try { await onSave(form, submitAfter) } finally { setSaving(false) }
   }
 
   return (
@@ -67,7 +67,8 @@ export default function RuleModal({ rule, onSave, onClose }) {
               </div>
               <div className="form-group">
                 <label className="form-label">Apply % (X)</label>
-                <input className="form-control" value={form.applyPercentage} onChange={e => set('applyPercentage', e.target.value)} placeholder="e.g. 1 = 100%, 0.9 = 90%" />
+                <input className="form-control" type="number" step="0.01" min="0" max="1" value={form.applyPercentage} onChange={e => set('applyPercentage', e.target.value)} placeholder="e.g. 1 = 100%, 0.9 = 90%" />
+                {form.applyPercentage && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>= {(parseFloat(form.applyPercentage) * 100).toFixed(0)}%</div>}
               </div>
             </div>
 
@@ -94,7 +95,12 @@ export default function RuleModal({ rule, onSave, onClose }) {
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            {rule && (rule.approvalStatus === 'DRAFT' || rule.approvalStatus === 'REJECTED') && (
+              <button type="button" className="btn btn-secondary" disabled={saving} onClick={(e) => handleSubmit(e, true)}>
+                {saving ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Saving…</> : 'Save & Submit'}
+              </button>
+            )}
+            <button type="submit" className="btn btn-primary" disabled={saving} onClick={(e) => handleSubmit(e, false)}>
               {saving ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Saving…</> : (rule ? 'Update Rule' : 'Create Rule')}
             </button>
           </div>

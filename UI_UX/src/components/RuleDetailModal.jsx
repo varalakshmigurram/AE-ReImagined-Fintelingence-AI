@@ -91,7 +91,7 @@ function RuleDetails({ rule }) {
       <Row label="Description" value={<span style={{ color: 'var(--text-subtle)', lineHeight: 1.6 }}>{rule.description}</span>} />
       <Row label="Applicable Segment" value={rule.applicableSegment} />
       <Row label="Cutoffs" value={rule.cutoffs} mono />
-      <Row label="Apply %" value={rule.applyPercentage} mono />
+      <Row label="Apply %" value={rule.applyPercentage ? `${(parseFloat(rule.applyPercentage) * 100).toFixed(0)}%` : '—'} mono />
       <Row label="Phase" value={rule.phase?.replace(/_/g, ' ')} />
       <Row label="Approval Status" value={<span className={`badge badge-${statusMap[rule.approvalStatus]}`}>{rule.approvalStatus?.replace(/_/g, ' ')}</span>} />
       <Row label="Environment" value={<span className={`badge badge-${rule.environment?.toLowerCase()}`}>{rule.environment}</span>} />

@@ -62,91 +62,172 @@ public class ExcelConfigParserService {
         List<Row> rows = new ArrayList<>();
         for (Row r : sheet) rows.add(r);
 
-        // ── External Bands (rows 0-4, col 0-1) ──────────────────────────────
+        // ── ExternalBand (A1:B6) ──────────────────────────────────────────────
+        result.externalBands = parseExternalBands(rows);
+
+        // ── InternalBandV11ADF (D1:E11) ────────────────────────────────────────
+        result.internalBandV11ADF = parseInternalBandV11ADF(rows);
+
+        // ── InternalBandV11Market (H2:R12) ─────────────────────────────────────
+        result.internalBandV11Market = parseInternalBandV11Market(rows);
+
+        // ── CreditGradeLookup (A15:K20) ────────────────────────────────────────
+        result.creditGradeLookup = parseCreditGradeLookup(rows);
+
+        // ── BoundaryConditions (A42:F52) ───────────────────────────────────────
+        result.boundaryConditions = parseBoundaryConditions(rows);
+
+        // ── TenorOptions (A57:C67) ─────────────────────────────────────────────
+        result.tenorOptions = parseTenorOptions(rows);
+    }
+
+    private List<Map<String, String>> parseExternalBands(List<Row> rows) {
         List<Map<String, String>> externalBands = new ArrayList<>();
-        String[] ebNames = {"Super Prime", "Prime", "Near Prime", "Subprime", "Deep Subprime"};
-        String[] ebRanges = {"761 - 999", "681 - 760", "621 - 680", "581 - 620", "0 - 580"};
-        for (int i = 0; i < ebNames.length; i++) {
-            Map<String, String> eb = new LinkedHashMap<>();
-            eb.put("name", ebNames[i]);
-            eb.put("vantageScoreRange", ebRanges[i]);
-            eb.put("index", String.valueOf(i + 1));
-            externalBands.add(eb);
-        }
-        result.externalBands = externalBands;
-
-        // ── Internal Bands (rows 0-9, col 3-4) ──────────────────────────────
-        List<Map<String, String>> internalBands = new ArrayList<>();
-        String[] ibNames = {"IB 1", "IB 2", "IB 3", "IB 4", "IB 5", "IB 6", "IB 7", "IB 8", "IB 9", "IB 10"};
-        String[] ibRanges = {"891 - 999", "868 - 890", "845 - 867", "820 - 844", "796 - 819", "770 - 795", "742 - 769", "703 - 741", "647 - 702", "0 - 646"};
-        for (int i = 0; i < ibNames.length; i++) {
-            Map<String, String> ib = new LinkedHashMap<>();
-            ib.put("name", ibNames[i]);
-            ib.put("v11AdfRange", ibRanges[i]);
-            ib.put("index", String.valueOf(i + 1));
-            internalBands.add(ib);
-        }
-        result.internalBands = internalBands;
-
-        // ── IB Lookup Matrix (rows 14-18, Credit Grade Lookup table) ────────
-        // Row 13 is header, rows 14-18 are EB1-EB5, cols 1-10 are IB1-IB10
-        List<Map<String, Object>> ibLookup = new ArrayList<>();
-        String[] ebLookupNames = {"Super Prime", "Prime", "Near Prime", "Subprime", "Deep Subprime"};
-        // Values extracted directly from Excel
-        String[][] lookupMatrix = {
-            {"A1", "A1", "A2", "A2", "B1", "B1", "F",  "F",  "F",  "F"},
-            {"B1", "B1", "B2", "B2", "C1", "C1", "C2", "F",  "F",  "F"},
-            {"C1", "C1", "C2", "C2", "C2", "C2", "D1", "D1", "F",  "F"},
-            {"D1", "D1", "D2", "D2", "D2", "D2", "D2", "D2", "F",  "F"},
-            {"E1", "E1", "E1", "E1", "E2", "E2", "E2", "E2", "F",  "F"},
-        };
-        for (int eb = 0; eb < 5; eb++) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("externalBand", ebLookupNames[eb]);
-            for (int ib = 0; ib < 10; ib++) {
-                row.put("IB" + (ib + 1), lookupMatrix[eb][ib]);
+        // External Bands: rows 0-4, col 0 (name), col 1 (range)
+        for (int i = 0; i < Math.min(5, rows.size()); i++) {
+            Row row = rows.get(i);
+            Cell nameCell = row.getCell(0);
+            Cell rangeCell = row.getCell(1);
+            
+            if (nameCell != null && rangeCell != null) {
+                Map<String, String> eb = new LinkedHashMap<>();
+                eb.put("name", getCellValue(nameCell));
+                eb.put("vantageScoreRange", getCellValue(rangeCell));
+                eb.put("index", String.valueOf(i + 1));
+                externalBands.add(eb);
             }
-            ibLookup.add(row);
         }
-        result.creditGradeLookup = ibLookup;
+        return externalBands;
+    }
 
-        // ── Credit Grade Offer Table (rows 40-50) ────────────────────────────
-        List<Map<String, Object>> gradeOffers = new ArrayList<>();
-        String[] grades    = {"A1", "A2", "B1", "B2", "C1", "C2", "D1", "D2", "E1", "E2"};
-        int[]    maxLoans  = {5000, 3500, 2500, 2500, 2000, 2000, 1500, 1500, 1000, 1000};
-        int[]    maxTenors = {36, 36, 24, 24, 24, 24, 18, 18, 18, 12};
-        int[]    targetApr = {60, 70, 80, 90, 100, 110, 120, 130, 140, 150};
-        int[]    maxPayLow = {300, 200, 150, 150, 150, 150, 100, 100, 100, 100};
-        int[]    maxPayHigh= {400, 300, 250, 250, 250, 250, 200, 200, 150, 150};
-        int[]    minPay    = {50, 50, 50, 50, 50, 50, 50, 50, 50, 50};
-        double[] orgFee    = {0.0549, 0.0549, 0.0549, 0.0549, 0.0549, 0.0549, 0.0549, 0.0549, 0.0549, 0.0549};
-
-        for (int i = 0; i < grades.length; i++) {
-            Map<String, Object> offer = new LinkedHashMap<>();
-            offer.put("creditGrade", grades[i]);
-            offer.put("maxLoanAmount", maxLoans[i]);
-            offer.put("maxTenor", maxTenors[i]);
-            offer.put("targetApr", targetApr[i]);
-            offer.put("maxMonthlyPaymentLowCF", maxPayLow[i]);
-            offer.put("maxMonthlyPaymentHighCF", maxPayHigh[i]);
-            offer.put("minMonthlyPayment", minPay[i]);
-            offer.put("orgFeePercent", orgFee[i]);
-            gradeOffers.add(offer);
+    private List<Map<String, String>> parseInternalBandV11ADF(List<Row> rows) {
+        List<Map<String, String>> v11ADF = new ArrayList<>();
+        // InternalBandV11ADF: rows 0-10, col 3-4 (D1:E11)
+        for (int i = 0; i < Math.min(11, rows.size()); i++) {
+            Row row = rows.get(i);
+            Cell bandCell = row.getCell(3);
+            Cell rangeCell = row.getCell(4);
+            
+            if (bandCell != null && rangeCell != null) {
+                Map<String, String> entry = new LinkedHashMap<>();
+                String bandName = getCellValue(bandCell);
+                entry.put("index", String.valueOf(i + 1));
+                entry.put("name", bandName);
+                entry.put("v11AdfRange", getCellValue(rangeCell));
+                v11ADF.add(entry);
+            }
         }
-        result.creditGradeOffers = gradeOffers;
+        return v11ADF;
+    }
 
-        // ── Tenor Options by Loan Amount Range (rows 55-64) ──────────────────
+    private List<Map<String, String>> parseInternalBandV11Market(List<Row> rows) {
+        List<Map<String, String>> v11Market = new ArrayList<>();
+        // InternalBandV11Market: rows 1-11, col 7-17 (H2:R12) - extract first column as market score range
+        for (int i = 1; i < Math.min(12, rows.size()); i++) {
+            Row row = rows.get(i);
+            Map<String, String> entry = new LinkedHashMap<>();
+            
+            // Get market score range from first column (H)
+            Cell marketCell = row.getCell(7);
+            if (marketCell != null) {
+                entry.put("index", String.valueOf(i));
+                entry.put("marketScoreRange", getCellValue(marketCell));
+                v11Market.add(entry);
+            }
+        }
+        return v11Market;
+    }
+
+    private List<Map<String, Object>> parseCreditGradeLookup(List<Row> rows) {
+        List<Map<String, Object>> lookup = new ArrayList<>();
+        // CreditGradeLookup: rows 14-19 (A15:K20) - 6x11 matrix
+        // Row 14 is header, rows 15-19 are data
+        if (rows.size() > 19) {
+            for (int i = 14; i <= 19; i++) {
+                Row row = rows.get(i);
+                Map<String, Object> lookupRow = new LinkedHashMap<>();
+                
+                Cell ebNameCell = row.getCell(0);
+                lookupRow.put("externalBand", ebNameCell != null ? getCellValue(ebNameCell) : "");
+                
+                for (int ib = 0; ib < 10; ib++) {
+                    Cell ibCell = row.getCell(ib + 1);
+                    lookupRow.put("IB" + (ib + 1), ibCell != null ? getCellValue(ibCell) : "");
+                }
+                lookup.add(lookupRow);
+            }
+        }
+        return lookup;
+    }
+
+    private List<Map<String, Object>> parseBoundaryConditions(List<Row> rows) {
+        List<Map<String, Object>> conditions = new ArrayList<>();
+        // BoundaryConditions: rows 41-51 (A42:F52) - 11x6 matrix
+        // Credit grade limits (Max Loan, Tenor, APR, Monthly Payment, Org Fee)
+        if (rows.size() > 51) {
+            for (int i = 41; i <= 51; i++) {
+                Row row = rows.get(i);
+                Map<String, Object> condition = new LinkedHashMap<>();
+                
+                condition.put("creditGrade", getCellValue(row.getCell(0)));
+                condition.put("maxLoanAmount", parseNumeric(row.getCell(1)));
+                condition.put("maxTenor", parseNumeric(row.getCell(2)));
+                condition.put("targetApr", parseDouble(row.getCell(3)));
+                condition.put("maxMonthlyPaymentLowCF", parseDouble(row.getCell(4)));
+                condition.put("maxMonthlyPaymentHighCF", parseDouble(row.getCell(5)));
+                condition.put("minMonthlyPayment", 100.0);
+                condition.put("orgFeePercent", parseDouble(row.getCell(5)) / 100.0);
+                
+                conditions.add(condition);
+            }
+        }
+        return conditions;
+    }
+
+    private List<Map<String, Object>> parseTenorOptions(List<Row> rows) {
         List<Map<String, Object>> tenorOptions = new ArrayList<>();
-        int[][] ranges = {{500,1000},{1001,1500},{1501,2000},{2001,2500},{2501,3000},{3001,3500},{3501,4000},{4001,4500},{4501,5000}};
-        String[] tenors = {"9,12,18","9,12,18","12,18,24","12,18,24","12,18,24","12,18,24","18,24,36","18,24,36","18,24,36"};
-        for (int i = 0; i < ranges.length; i++) {
-            Map<String, Object> t = new LinkedHashMap<>();
-            t.put("minLoanAmount", ranges[i][0]);
-            t.put("maxLoanAmount", ranges[i][1]);
-            t.put("tenorOptions", Arrays.asList(tenors[i].split(",")));
-            tenorOptions.add(t);
+        // TenorOptions: rows 56-66 (A57:C67) - 11x3 matrix
+        // Loan amount ranges and available tenor options
+        if (rows.size() > 66) {
+            for (int i = 56; i <= 66; i++) {
+                Row row = rows.get(i);
+                Map<String, Object> tenor = new LinkedHashMap<>();
+                
+                tenor.put("minLoanAmount", parseNumeric(row.getCell(0)));
+                tenor.put("maxLoanAmount", parseNumeric(row.getCell(1)));
+                
+                // Keep tenorOptions as comma-separated string for frontend
+                String tenorStr = getCellValue(row.getCell(2));
+                tenor.put("tenorOptions", tenorStr);
+                
+                tenorOptions.add(tenor);
+            }
         }
-        result.tenorOptions = tenorOptions;
+        return tenorOptions;
+    }
+
+    private int parseNumeric(Cell cell) {
+        if (cell == null) return 0;
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return (int) cell.getNumericCellValue();
+        }
+        try {
+            return Integer.parseInt(getCellValue(cell));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private double parseDouble(Cell cell) {
+        if (cell == null) return 0.0;
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return cell.getNumericCellValue();
+        }
+        try {
+            return Double.parseDouble(getCellValue(cell));
+        } catch (NumberFormatException e) {
+            return 0.0;
+        }
     }
 
     private String getCellValue(Cell cell) {
@@ -169,18 +250,20 @@ public class ExcelConfigParserService {
         public boolean valid;
         public String errorMessage;
         public List<Map<String, String>> externalBands;
-        public List<Map<String, String>> internalBands;
+        public List<Map<String, String>> internalBandV11ADF;
+        public List<Map<String, String>> internalBandV11Market;
         public List<Map<String, Object>> creditGradeLookup;
-        public List<Map<String, Object>> creditGradeOffers;
+        public List<Map<String, Object>> boundaryConditions;
         public List<Map<String, Object>> tenorOptions;
 
         public Map<String, Object> toJsonMap() {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("strategyVersion", strategyVersion);
             m.put("externalBands", externalBands);
-            m.put("internalBands", internalBands);
+            m.put("internalBandV11ADF", internalBandV11ADF);
+            m.put("internalBandV11Market", internalBandV11Market);
             m.put("creditGradeLookup", creditGradeLookup);
-            m.put("creditGradeOffers", creditGradeOffers);
+            m.put("boundaryConditions", boundaryConditions);
             m.put("tenorOptions", tenorOptions);
             return m;
         }

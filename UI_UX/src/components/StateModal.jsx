@@ -20,7 +20,7 @@ export default function StateModal({ state, onSave, onClose }) {
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, submitAfter = false) => {
     e.preventDefault(); setSaving(true)
     const cleaned = {
       ...form,
@@ -28,7 +28,7 @@ export default function StateModal({ state, onSave, onClose }) {
       maxOriginationFeePercentage: form.maxOriginationFeePercentage === '' ? null : Number(form.maxOriginationFeePercentage),
       stateOnOff: form.stateOnOff === '' ? null : form.stateOnOff,
     }
-    try { await onSave(cleaned) } finally { setSaving(false) }
+    try { await onSave(cleaned, submitAfter) } finally { setSaving(false) }
   }
 
   return (
@@ -118,7 +118,12 @@ export default function StateModal({ state, onSave, onClose }) {
 
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            {state && (state.approvalStatus === 'DRAFT' || state.approvalStatus === 'REJECTED') && (
+              <button type="button" className="btn btn-secondary" disabled={saving} onClick={(e) => handleSubmit(e, true)}>
+                {saving ? 'Saving…' : 'Save & Submit'}
+              </button>
+            )}
+            <button type="submit" className="btn btn-primary" disabled={saving} onClick={(e) => handleSubmit(e, false)}>
               {saving ? 'Saving…' : (state ? 'Update State' : 'Add State')}
             </button>
           </div>

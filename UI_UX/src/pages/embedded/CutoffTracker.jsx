@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Save, RefreshCw, Database, Filter, Download, ChevronDown, ChevronUp, Edit2, Check, X } from 'lucide-react'
+import { Plus, Trash2, Save, RefreshCw, Database, Filter, Download, ChevronDown, ChevronUp, Edit2, Check, X, AlertCircle, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 
@@ -9,6 +9,7 @@ const getCutoffEntries = (groupName, env) =>
   v1.get('/cutoffs/entries', { params: { ...(groupName ? { groupName } : {}), environment: env } }).then(r => r.data)
 const getCutoffGroups  = () => v1.get('/cutoffs/groups').then(r => r.data)
 const saveCutoffs      = (payload) => v1.post('/rules/save', payload).then(r => r.data)
+const checkVersion     = (version, scope) => v1.get('/version/check', { params: { version, scope } }).then(r => r.data)
 
 const GRADE_OPTIONS   = ['A','A1','A2','B','B1','B2','C','C1','C2','D','D1','D2','E','E1','E2','F']
 const CHANNEL_OPTIONS = ['CMPQ','CKPQ','QS','LT','ML','MO','CMACT','ORG','ONLINE','DEFAULT']
@@ -51,11 +52,45 @@ function AddGroupPanel({ onAdd, onClose }) {
   const [preset, setPreset] = useState('grade,channel,state')
   const [version, setVersion] = useState('1.0.0')
   const [desc, setDesc]     = useState('')
+  const [versionStatus, setVersionStatus] = useState(null)
+  const [versionMsg, setVersionMsg] = useState('')
+  const [suggested, setSuggested] = useState('')
+
+  const checkVersionValidity = async () => {
+    if (!version.trim() || !/^\d+\.\d+\.\d+$/.test(version.trim())) { 
+      setVersionStatus('error')
+      setVersionMsg('Must be x.y.z format')
+      return 
+    }
+    setVersionStatus('checking')
+    try {
+      const r = await checkVersion(version.trim(), 'RULES')
+      if (r.valid) { 
+        setVersionStatus('ok')
+        setVersionMsg('Version available')
+        setSuggested('')
+      } else { 
+        setVersionStatus('error')
+        setVersionMsg(r.error || 'Version already exists')
+        setSuggested(r.suggestedNext || '')
+      }
+    } catch(e) { 
+      setVersionStatus(null)
+    }
+  }
+
+  const handleAddClick = () => {
+    if (versionStatus !== 'ok') {
+      toast.error('Please validate version first')
+      return
+    }
+    onAdd({ name:name.trim(), preset, version, desc })
+  }
 
   return (
     <div className="card" style={{ padding:18, marginBottom:16, border:'2px dashed var(--accent)', background:'var(--accent-light)' }}>
       <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:'var(--accent)' }}>New Cutoff Group</div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 100px 1fr', gap:12, marginBottom:12 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:12, marginBottom:12 }}>
         <div className="form-group">
           <label className="form-label">Group Name *</label>
           <input className="form-control" value={name} onChange={e=>setName(e.target.value)} placeholder="cvScoreCutoff" style={{ fontFamily:'var(--mono)' }}/>
@@ -67,8 +102,17 @@ function AddGroupPanel({ onAdd, onClose }) {
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">Version</label>
-          <input className="form-control" value={version} onChange={e=>setVersion(e.target.value)} placeholder="1.0.0" style={{ fontFamily:'var(--mono)' }}/>
+          <label className="form-label">Version * <span style={{ fontSize:10, color:'var(--text-muted)', fontWeight:400 }}>x.y.z</span></label>
+          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+            <input className="form-control" value={version} onChange={e=>{setVersion(e.target.value);setVersionStatus(null)}} onBlur={checkVersionValidity} placeholder="1.0.0" style={{ fontFamily:'var(--mono)', flex:1 }}/>
+            {versionStatus==='checking' && <div className="spinner" style={{width:14,height:14,flexShrink:0}}/>}
+            {versionStatus==='ok' && <CheckCircle size={14} color="var(--success)" style={{flexShrink:0}}/>}
+            {versionStatus==='error' && <AlertCircle size={14} color="var(--danger)" style={{flexShrink:0}}/>}
+          </div>
+          {versionStatus && <div style={{ fontSize:10, marginTop:4, color: versionStatus==='ok' ? 'var(--success)' : 'var(--danger)' }}>
+            {versionMsg}
+            {suggested && <> — <button style={{ background:'none', border:'none', cursor:'pointer', color:'var(--accent)', fontSize:10, fontFamily:'var(--mono)', fontWeight:600 }} onClick={()=>{setVersion(suggested);setVersionStatus(null)}}>{suggested}</button></>}
+          </div>}
         </div>
         <div className="form-group">
           <label className="form-label">Description</label>
@@ -76,7 +120,7 @@ function AddGroupPanel({ onAdd, onClose }) {
         </div>
       </div>
       <div style={{ display:'flex', gap:8 }}>
-        <button className="btn btn-primary btn-sm" disabled={!name.trim()} onClick={()=>onAdd({ name:name.trim(), preset, version, desc })}>Add Group</button>
+        <button className="btn btn-primary btn-sm" disabled={!name.trim() || versionStatus !== 'ok'} onClick={handleAddClick}>Add Group</button>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
       </div>
     </div>
@@ -157,9 +201,13 @@ export default function CutoffTracker() {
         }
       }
 
-      const r = await saveCutoffs({ version, versionDescription: versionDesc || 'Cutoff update', createdBy:'lead-analyst', cutoffs })
+      const r = await saveCutoffs({ version, versionDescription: versionDesc || 'Cutoff update', createdBy:'lead-analyst', environment: env, cutoffs })
       if (r.success) {
-        toast.success(`Cutoffs saved — batchId: ${r.batchId?.slice(0,8)}…`)
+        if (env === 'TEST') {
+          toast.success(`Cutoffs saved to TEST — batchId: ${r.batchId?.slice(0,8)}…\nSubmit for review to promote to PROD`)
+        } else {
+          toast.success(`Cutoffs saved to PROD — batchId: ${r.batchId?.slice(0,8)}…`)
+        }
         setDraft({}); setDraftMeta({}); setActiveTab('table'); load()
       } else { toast.error(r.validationErrors?.[0] || 'Save failed') }
     } catch(e) { toast.error(e.response?.data?.error || e.message) }
@@ -182,11 +230,16 @@ export default function CutoffTracker() {
             {['TEST','PROD'].map(e=><button key={e} className={`env-btn ${e.toLowerCase()} ${env===e?'active':''}`} onClick={()=>setEnv(e)}>{e}</button>)}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCw size={12}/></button>
-          {hasDraft && (
-            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? <><div className="spinner" style={{width:13,height:13}}/> Saving…</> : <><Save size={13}/> Save to Production</>}
-            </button>
-          )}
+          <button className="btn btn-ghost btn-sm" onClick={()=>{ setActiveTab('editor'); setShowAdd(true) }}><Plus size={12}/> Add Cutoff Group</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving || !hasDraft} title={!hasDraft ? 'Add or edit cutoff groups to enable save' : ''}>
+            {saving ? (
+              <><div className="spinner" style={{width:13,height:13}}/> Saving…</>
+            ) : env === 'TEST' ? (
+              <><Save size={13}/> Save to TEST</>
+            ) : (
+              <><Save size={13}/> Save to Production</>
+            )}
+          </button>
         </div>
       </div>
 

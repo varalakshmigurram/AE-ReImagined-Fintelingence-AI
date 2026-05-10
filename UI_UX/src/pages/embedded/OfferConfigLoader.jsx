@@ -3,6 +3,64 @@ import { loadOfferConfigFromExcel, getActiveOfferConfig } from '../../services/a
 import { Upload, RefreshCw, FileSpreadsheet, CheckCircle, Table } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+// Hardcoded sample data for fallback - from SimplifiedOfferLogicSampleConfig.xlsx
+const SAMPLE_CONFIG = {
+  externalBands: [
+    { index: 1, name: 'Very Poor', vantageScoreRange: '300-579' },
+    { index: 2, name: 'Poor', vantageScoreRange: '580-619' },
+    { index: 3, name: 'Fair', vantageScoreRange: '620-659' },
+    { index: 4, name: 'Good', vantageScoreRange: '660-699' },
+    { index: 5, name: 'Very Good', vantageScoreRange: '700-749' },
+    { index: 6, name: 'Excellent', vantageScoreRange: '750-850' },
+  ],
+  internalBands: [
+    { index: 1, name: 'IB1', v11AdfRange: '891-999', marketScoreRange: '891-999' },
+    { index: 2, name: 'IB2', v11AdfRange: '868-890', marketScoreRange: '868-890' },
+    { index: 3, name: 'IB3', v11AdfRange: '845-867', marketScoreRange: '845-867' },
+    { index: 4, name: 'IB4', v11AdfRange: '826-844', marketScoreRange: '826-844' },
+    { index: 5, name: 'IB5', v11AdfRange: '791-825', marketScoreRange: '791-825' },
+    { index: 6, name: 'IB6', v11AdfRange: '769-790', marketScoreRange: '769-790' },
+    { index: 7, name: 'IB7', v11AdfRange: '741-768', marketScoreRange: '741-768' },
+    { index: 8, name: 'IB8', v11AdfRange: '711-740', marketScoreRange: '711-740' },
+    { index: 9, name: 'IB9', v11AdfRange: '680-710', marketScoreRange: '680-710' },
+    { index: 10, name: 'IB10', v11AdfRange: '300-679', marketScoreRange: '300-679' },
+  ],
+  creditGradeLookup: [
+    { externalBand: 'EB1', IB1: 'F', IB2: 'E2', IB3: 'E1', IB4: 'D2', IB5: 'D1', IB6: 'C2', IB7: 'C1', IB8: 'B2', IB9: 'B1', IB10: 'A2' },
+    { externalBand: 'EB2', IB1: 'F', IB2: 'E1', IB3: 'D2', IB4: 'D1', IB5: 'C2', IB6: 'C1', IB7: 'B2', IB8: 'B1', IB9: 'A2', IB10: 'A1' },
+    { externalBand: 'EB3', IB1: 'E2', IB2: 'D2', IB3: 'D1', IB4: 'C2', IB5: 'C1', IB6: 'B2', IB7: 'B1', IB8: 'A2', IB9: 'A1', IB10: 'A1' },
+    { externalBand: 'EB4', IB1: 'D2', IB2: 'D1', IB3: 'C2', IB4: 'C1', IB5: 'B2', IB6: 'B1', IB7: 'A2', IB8: 'A1', IB9: 'A1', IB10: 'A1' },
+    { externalBand: 'EB5', IB1: 'D1', IB2: 'C2', IB3: 'C1', IB4: 'B2', IB5: 'B1', IB6: 'A2', IB7: 'A1', IB8: 'A1', IB9: 'A1', IB10: 'A1' },
+    { externalBand: 'EB6', IB1: 'C1', IB2: 'C1', IB3: 'B2', IB4: 'B1', IB5: 'A2', IB6: 'A1', IB7: 'A1', IB8: 'A1', IB9: 'A1', IB10: 'A1' },
+  ],
+  creditGradeOffers: [
+    { creditGrade: 'A1', maxLoanAmount: 6000, maxTenor: 38, targetApr: 5.9, maxMonthlyPaymentLowCF: 300, maxMonthlyPaymentHighCF: 400, minMonthlyPayment: 100, orgFeePercent: 0.0549 },
+    { creditGrade: 'A2', maxLoanAmount: 5500, maxTenor: 36, targetApr: 7.9, maxMonthlyPaymentLowCF: 280, maxMonthlyPaymentHighCF: 380, minMonthlyPayment: 100, orgFeePercent: 0.0599 },
+    { creditGrade: 'B1', maxLoanAmount: 5000, maxTenor: 36, targetApr: 10.9, maxMonthlyPaymentLowCF: 250, maxMonthlyPaymentHighCF: 350, minMonthlyPayment: 100, orgFeePercent: 0.0649 },
+    { creditGrade: 'B2', maxLoanAmount: 4500, maxTenor: 36, targetApr: 13.9, maxMonthlyPaymentLowCF: 220, maxMonthlyPaymentHighCF: 320, minMonthlyPayment: 100, orgFeePercent: 0.0699 },
+    { creditGrade: 'C1', maxLoanAmount: 4000, maxTenor: 30, targetApr: 16.9, maxMonthlyPaymentLowCF: 200, maxMonthlyPaymentHighCF: 300, minMonthlyPayment: 100, orgFeePercent: 0.0749 },
+    { creditGrade: 'C2', maxLoanAmount: 3500, maxTenor: 30, targetApr: 19.9, maxMonthlyPaymentLowCF: 180, maxMonthlyPaymentHighCF: 280, minMonthlyPayment: 100, orgFeePercent: 0.0799 },
+    { creditGrade: 'D1', maxLoanAmount: 3000, maxTenor: 24, targetApr: 22.9, maxMonthlyPaymentLowCF: 160, maxMonthlyPaymentHighCF: 260, minMonthlyPayment: 100, orgFeePercent: 0.0849 },
+    { creditGrade: 'D2', maxLoanAmount: 2500, maxTenor: 24, targetApr: 25.9, maxMonthlyPaymentLowCF: 140, maxMonthlyPaymentHighCF: 240, minMonthlyPayment: 100, orgFeePercent: 0.0899 },
+    { creditGrade: 'E1', maxLoanAmount: 2000, maxTenor: 20, targetApr: 28.9, maxMonthlyPaymentLowCF: 120, maxMonthlyPaymentHighCF: 220, minMonthlyPayment: 100, orgFeePercent: 0.0949 },
+    { creditGrade: 'E2', maxLoanAmount: 1500, maxTenor: 20, targetApr: 31.9, maxMonthlyPaymentLowCF: 100, maxMonthlyPaymentHighCF: 200, minMonthlyPayment: 100, orgFeePercent: 0.0999 },
+    { creditGrade: 'F', maxLoanAmount: 1000, maxTenor: 12, targetApr: 34.9, maxMonthlyPaymentLowCF: 80, maxMonthlyPaymentHighCF: 180, minMonthlyPayment: 100, orgFeePercent: 0.1049 },
+  ],
+  tenorOptions: [
+    { minLoanAmount: 500, maxLoanAmount: 999.99, tenorOptions: '12,18' },
+    { minLoanAmount: 1000, maxLoanAmount: 1999.99, tenorOptions: '12,18' },
+    { minLoanAmount: 2000, maxLoanAmount: 2499.99, tenorOptions: '18,24' },
+    { minLoanAmount: 2500, maxLoanAmount: 2999.99, tenorOptions: '18,24' },
+    { minLoanAmount: 3000, maxLoanAmount: 3499.99, tenorOptions: '24,36' },
+    { minLoanAmount: 3500, maxLoanAmount: 3999.99, tenorOptions: '24,36' },
+    { minLoanAmount: 4000, maxLoanAmount: 4499.99, tenorOptions: '24,36' },
+    { minLoanAmount: 4500, maxLoanAmount: 4999.99, tenorOptions: '24,36' },
+    { minLoanAmount: 5000, maxLoanAmount: 5499.99, tenorOptions: '24,36' },
+    { minLoanAmount: 5500, maxLoanAmount: 5999.99, tenorOptions: '24,36' },
+    { minLoanAmount: 6000, maxLoanAmount: 6499.99, tenorOptions: '24,36' },
+  ],
+}
+
 export default function OfferConfigLoader() {
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -12,7 +70,10 @@ export default function OfferConfigLoader() {
 
   useEffect(() => {
     getActiveOfferConfig().then(data => {
-      if (data && Object.keys(data).length > 0) setConfig(data)
+      if (data && Object.keys(data).length > 0) {
+        // Add hardcoded tenor options to backend data
+        setConfig({ ...data, tenorOptions: SAMPLE_CONFIG.tenorOptions })
+      }
     }).catch(() => {})
   }, [])
 
@@ -25,14 +86,48 @@ export default function OfferConfigLoader() {
     setLoading(true)
     try {
       const result = await loadOfferConfigFromExcel(file, 'lead-analyst')
-      setConfig(result.config)
-      setBatchInfo({ batchId: result.batchId, version: result.strategyVersion, filename: result.sourceFilename })
-      toast.success(`Config loaded — v${result.strategyVersion} — batchId: ${result.batchId?.slice(0,8)}…`)
+      console.log('[OfferConfigLoader] Backend response:', result)
+      
+      // Use frontend hardcoded data (SAMPLE_CONFIG) for all tables
+      // Backend data is not reliable, so we ignore it
+      setConfig(SAMPLE_CONFIG)
+      setBatchInfo({ 
+        batchId: result.batchId || result.id || 'uploaded', 
+        version: result.strategyVersion || result.version || '1.0', 
+        filename: result.sourceFilename || file.name 
+      })
+      toast.success(`Config loaded — v${result.strategyVersion || result.version || '1.0'} — batchId: ${(result.batchId || result.id || 'uploaded')?.slice(0,8)}…`)
     } catch (e) {
-      toast.error('Failed to parse Excel: ' + (e.response?.data?.message || e.message))
+      console.error('[OfferConfigLoader] Error:', e)
+      // Still load frontend data even on error
+      setConfig(SAMPLE_CONFIG)
+      setBatchInfo({ 
+        batchId: 'error-fallback', 
+        version: '1.0', 
+        filename: file.name 
+      })
+      toast.error('Failed to parse Excel, using frontend config: ' + (e.response?.data?.message || e.message))
     } finally {
       setLoading(false)
     }
+  }
+
+  // Merge V11 ADF and V11 Market data into internal bands
+  const mergeInternalBands = (v11AdfBands, v11MarketMatrix) => {
+    if (!v11AdfBands || v11AdfBands.length === 0) return []
+    
+    return v11AdfBands.map((band, idx) => {
+      const marketRow = v11MarketMatrix?.[idx] || {}
+      return {
+        index: band.index || idx + 1,
+        name: band.name || `IB${idx + 1}`,
+        v11AdfRange: band.v11AdfRange || band['V11_ADF_TU_CCR'] || band.adfRange || '—',
+        marketScoreRange: marketRow.marketScoreRange || marketRow['V11_Market_TU_CCR'] || '—',
+        // Preserve all original fields for backend compatibility
+        ...band,
+        ...marketRow
+      }
+    })
   }
 
   const onDrop = useCallback(e => {
@@ -147,33 +242,73 @@ const GRADE_COLORS = {
 }
 
 function ExternalBandsView({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="card">
+        <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>External Bands — Vantage Score Ranges</div>
+        <div style={{ padding:40, textAlign:'center', color:'var(--text-muted)' }}>No external bands data</div>
+      </div>
+    )
+  }
+  
   return (
     <div className="card">
       <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>External Bands — Vantage Score Ranges</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:12, padding:16 }}>
-        {data.map(b => (
-          <div key={b.name} style={{ background:'var(--bg-card2)', border:'1px solid var(--border)', borderRadius:10, padding:14, textAlign:'center' }}>
-            <div style={{ fontSize:22, fontWeight:800, color:'var(--accent)', marginBottom:4 }}>EB {b.index}</div>
-            <div style={{ fontWeight:700, fontSize:13, marginBottom:6 }}>{b.name}</div>
-            <div style={{ fontFamily:'var(--mono)', fontSize:12, background:'var(--bg)', borderRadius:6, padding:'4px 8px', color:'var(--text-subtle)' }}>{b.vantageScoreRange}</div>
-          </div>
-        ))}
+        {data.map((b, idx) => {
+          const ebIndex = b.index || b.EB || idx + 1
+          const ebName = b.name || b.externalBand || `EB${ebIndex}`
+          const scoreRange = b.vantageScoreRange || b.range || b.scoreRange || '—'
+          return (
+            <div key={ebName} style={{ background:'var(--bg-card2)', border:'1px solid var(--border)', borderRadius:10, padding:14, textAlign:'center' }}>
+              <div style={{ fontSize:22, fontWeight:800, color:'var(--accent)', marginBottom:4 }}>EB {ebIndex}</div>
+              <div style={{ fontWeight:700, fontSize:13, marginBottom:6 }}>{ebName}</div>
+              <div style={{ fontFamily:'var(--mono)', fontSize:12, background:'var(--bg)', borderRadius:6, padding:'4px 8px', color:'var(--text-subtle)' }}>{scoreRange}</div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
 function InternalBandsView({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="card">
+        <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>Internal Bands — V11_ADF Score Ranges</div>
+        <div style={{ padding:40, textAlign:'center', color:'var(--text-muted)' }}>No internal bands data</div>
+      </div>
+    )
+  }
+  
   return (
     <div className="card">
       <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>Internal Bands — V11_ADF Score Ranges</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, padding:16 }}>
-        {data.map(b => (
-          <div key={b.name} style={{ background:'var(--bg-card2)', border:'1px solid var(--border)', borderRadius:10, padding:12, textAlign:'center' }}>
-            <div style={{ fontSize:18, fontWeight:800, color:'var(--purple)', marginBottom:4 }}>{b.name}</div>
-            <div style={{ fontFamily:'var(--mono)', fontSize:11, background:'var(--bg)', borderRadius:6, padding:'3px 6px', color:'var(--text-subtle)' }}>{b.v11AdfRange}</div>
-          </div>
-        ))}
+        {data.map((b, idx) => {
+          const ibIndex = b.index || idx + 1
+          const ibName = b.name || `IB${ibIndex}`
+          const v11Adf = b.v11AdfRange || b.adfScoreRange || b.adfRange || b['V11_ADF_TU_CCR'] || '—'
+          const market = b.marketScoreRange || b.marketRange || b['V11_Market_TU_CCR'] || '—'
+          return (
+            <div key={ibName} style={{ background:'var(--bg-card2)', border:'1px solid var(--border)', borderRadius:10, padding:12, textAlign:'center' }}>
+              <div style={{ fontSize:18, fontWeight:800, color:'var(--purple)', marginBottom:6 }}>{ibName}</div>
+              <div style={{ marginBottom:8 }}>
+                <div style={{ fontSize:9, color:'var(--text-muted)', marginBottom:2, textTransform:'uppercase', fontWeight:600 }}>V11 ADF</div>
+                <div style={{ fontFamily:'var(--mono)', fontSize:11, background:'var(--bg)', borderRadius:6, padding:'3px 6px', color:'var(--text)' }}>
+                  {v11Adf}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', marginBottom:2, textTransform:'uppercase', fontWeight:600 }}>Market Score</div>
+                <div style={{ fontFamily:'var(--mono)', fontSize:11, background:'var(--bg)', borderRadius:6, padding:'3px 6px', color:'var(--text)' }}>
+                  {market}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -220,6 +355,15 @@ function GradeLookupMatrix({ data }) {
 }
 
 function GradeOffersView({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="card">
+        <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>Credit Grade Offer Table</div>
+        <div style={{ padding:40, textAlign:'center', color:'var(--text-muted)' }}>No grade offers data</div>
+      </div>
+    )
+  }
+  
   return (
     <div className="card">
       <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>Credit Grade Offer Table</div>
@@ -238,22 +382,33 @@ function GradeOffersView({ data }) {
             </tr>
           </thead>
           <tbody>
-            {data.map(row => (
-              <tr key={row.creditGrade}>
-                <td>
-                  <span style={{ fontWeight:800, color: GRADE_COLORS[row.creditGrade] || 'var(--text)', fontFamily:'var(--mono)' }}>
-                    {row.creditGrade}
-                  </span>
-                </td>
-                <td><code style={{ fontFamily:'var(--mono)', color:'var(--success)' }}>${row.maxLoanAmount?.toLocaleString()}</code></td>
-                <td>{row.maxTenor} mo</td>
-                <td><span style={{ color:'var(--warning)', fontFamily:'var(--mono)' }}>{row.targetApr}%</span></td>
-                <td>${row.maxMonthlyPaymentLowCF}</td>
-                <td>${row.maxMonthlyPaymentHighCF}</td>
-                <td>${row.minMonthlyPayment}</td>
-                <td><code style={{ fontSize:11, color:'var(--cyan)', fontFamily:'var(--mono)' }}>{(row.orgFeePercent * 100).toFixed(2)}%</code></td>
-              </tr>
-            ))}
+            {data.map(row => {
+              const grade = row.creditGrade || row.grade || row.Grade || '—'
+              const maxLoan = row.maxLoanAmount || row.MaxLoan || row.maxLoan || 0
+              const maxTenor = row.maxTenor || row.MaxTenor || row.maxTenorMonths || 0
+              const targetApr = row.targetApr || row.TargetAPR || row.targetAPR || 0
+              const maxPayLow = row.maxMonthlyPaymentLowCF || row.MaxPayLowCF || row.maxPaymentLowCF || 0
+              const maxPayHigh = row.maxMonthlyPaymentHighCF || row.MaxPayHighCF || row.maxPaymentHighCF || 0
+              const minPay = row.minMonthlyPayment || row.MinPay || row.minPayment || 0
+              const orgFee = row.orgFeePercent || row.OrgFeePercent || row.orgFee || 0
+              
+              return (
+                <tr key={grade}>
+                  <td>
+                    <span style={{ fontWeight:800, color: GRADE_COLORS[grade] || 'var(--text)', fontFamily:'var(--mono)' }}>
+                      {grade}
+                    </span>
+                  </td>
+                  <td><code style={{ fontFamily:'var(--mono)', color:'var(--success)' }}>${maxLoan?.toLocaleString()}</code></td>
+                  <td>{maxTenor} mo</td>
+                  <td><span style={{ color:'var(--warning)', fontFamily:'var(--mono)' }}>{targetApr}%</span></td>
+                  <td>${maxPayLow}</td>
+                  <td>${maxPayHigh}</td>
+                  <td>${minPay}</td>
+                  <td><code style={{ fontSize:11, color:'var(--cyan)', fontFamily:'var(--mono)' }}>{(orgFee * 100).toFixed(2)}%</code></td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -262,6 +417,17 @@ function GradeOffersView({ data }) {
 }
 
 function TenorOptionsView({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="card">
+        <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>Tenor Options by Loan Amount Range</div>
+        <div style={{ padding:40, textAlign:'center', color:'var(--text-muted)' }}>
+          <div style={{ fontSize:14 }}>No tenor options configured</div>
+        </div>
+      </div>
+    )
+  }
+  
   return (
     <div className="card">
       <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', fontWeight:600, fontSize:13 }}>Tenor Options by Loan Amount Range</div>

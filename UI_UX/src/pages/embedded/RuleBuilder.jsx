@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronUp, Save, Copy, CheckCircle, AlertCircle, X } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saveEmbeddedRules, validateRules, getVariables } from '../../services/api'
+import { saveEmbeddedRules, validateRules, getVariables, createRule } from '../../services/api'
 import { PopupPortal } from '../../components/PopupPortal'
 import axios from 'axios'
 
@@ -316,26 +316,45 @@ function ClauseRow({ clause, idx, variables, onChange, onRemove }) {
 }
 
 // ─── Version input with collision check ───────────────────────────────────────
-function VersionInput({ version, setVersion }) {
+function VersionInput({ version, setVersion, onStatusChange }) {
   const [status, setStatus] = useState(null)
   const [msg, setMsg]       = useState('')
   const [suggested, setSuggested] = useState('')
 
   const check = async () => {
-    if (!version.trim() || !/^\d+\.\d+\.\d+$/.test(version.trim())) { setStatus('error'); setMsg('Must be x.y.z format'); return }
+    if (!version.trim() || !/^\d+\.\d+\.\d+$/.test(version.trim())) { 
+      setStatus('error'); 
+      setMsg('Must be x.y.z format')
+      onStatusChange?.('error')
+      return 
+    }
     setStatus('checking')
+    onStatusChange?.('checking')
     try {
       const r = await checkVersion(version.trim(), 'RULES')
-      if (r.valid) { setStatus('ok'); setMsg('Version available') }
-      else { setStatus('error'); setMsg(r.error||'Version taken'); setSuggested(r.suggestedNext||'') }
-    } catch { setStatus(null) }
+      if (r.valid) { 
+        setStatus('ok'); 
+        setMsg('Version available')
+        setSuggested('')
+        onStatusChange?.('ok')
+      }
+      else { 
+        setStatus('error'); 
+        setMsg(r.error||'Version taken'); 
+        setSuggested(r.suggestedNext||'')
+        onStatusChange?.('error')
+      }
+    } catch { 
+      setStatus(null)
+      onStatusChange?.(null)
+    }
   }
 
   return (
     <div className="form-group">
       <label className="form-label">Config Version * <span style={{ textTransform:'none', fontWeight:400, color:'var(--text-muted)' }}>— unique per scope (x.y.z)</span></label>
       <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-        <input className="form-control" value={version} onChange={e=>{setVersion(e.target.value);setStatus(null)}}
+        <input className="form-control" value={version} onChange={e=>{setVersion(e.target.value);setStatus(null);onStatusChange?.(null)}}
           onBlur={check} placeholder="1.0.0" style={{ width:110, fontFamily:'var(--mono)' }}/>
         {status==='checking' && <div className="spinner" style={{width:14,height:14}}/>}
         {status==='ok'    && <CheckCircle size={15} color="var(--success)"/>}
@@ -343,7 +362,7 @@ function VersionInput({ version, setVersion }) {
         {status==='ok'    && <span style={{ fontSize:11, color:'var(--success)', fontWeight:500 }}>{msg}</span>}
         {status==='error' && (
           <span style={{ fontSize:11, color:'var(--danger)' }}>{msg}
-            {suggested && <> — try <button style={{ background:'none', border:'none', cursor:'pointer', color:'var(--accent)', fontSize:11, fontFamily:'var(--mono)', fontWeight:600 }} onClick={()=>{setVersion(suggested);setStatus(null)}}>{suggested}</button></>}
+            {suggested && <> — try <button style={{ background:'none', border:'none', cursor:'pointer', color:'var(--accent)', fontSize:11, fontFamily:'var(--mono)', fontWeight:600 }} onClick={()=>{setVersion(suggested);setStatus(null);onStatusChange?.(null)}}>{suggested}</button></>}
           </span>
         )}
       </div>
@@ -492,17 +511,52 @@ export default function RuleBuilder() {
   const [variables, setVariables] = useState({})
   const [version, setVersion]     = useState('1.0.0')
   const [versionDesc, setVDesc]   = useState('')
+  const [versionStatus, setVersionStatus] = useState(null)
   const [saving, setSaving]       = useState(false)
   const [validating, setValidating] = useState(false)
   const [validationResult, setVR] = useState(null)
+  const [showAddVar, setShowAddVar] = useState(false)
+  const [newVarName, setNewVarName] = useState('')
+  const [newVarSource, setNewVarSource] = useState('custom')
+  const [newVarType, setNewVarType] = useState('STRING')
+  const [ruleCountOnLoad, setRuleCountOnLoad] = useState(1)
 
-  useEffect(() => { getVariables().then(setVariables).catch(()=>{}) }, [])
+  useEffect(() => { 
+    getVariables().then(setVariables).catch(()=>{})
+    setRuleCountOnLoad(1)
+  }, [])
+
+  const incrementVersion = () => {
+    const parts = version.split('.')
+    parts[2] = String(parseInt(parts[2]) + 1)
+    setVersion(parts.join('.'))
+  }
 
   const rules = groups[activeGroup] || []
   const upGrp = fn => setGroups(g => ({...g, [activeGroup]: fn(g[activeGroup]||[])}))
-  const addRule   = () => upGrp(rs => [...rs, defaultRule()])
+  const addRule   = () => {
+    upGrp(rs => [...rs, defaultRule()])
+    incrementVersion()
+  }
   const upRule    = (i, v) => upGrp(rs => rs.map((r,j) => j===i ? v : r))
   const remRule   = (i) => upGrp(rs => rs.filter((_,j) => j!==i))
+
+  const addCustomVariable = () => {
+    if (!newVarName.trim()) {
+      toast.error('Variable name is required')
+      return
+    }
+    const fullName = `${newVarSource}.${newVarName.trim()}`
+    setVariables(v => ({
+      ...v,
+      [fullName]: { source: newVarSource, dataType: newVarType }
+    }))
+    toast.success(`Added variable: ${fullName}`)
+    setNewVarName('')
+    setNewVarSource('custom')
+    setNewVarType('STRING')
+    setShowAddVar(false)
+  }
 
   const addGroup = () => {
     const n = newGrpName.trim().toUpperCase(); if (!n) return
@@ -532,13 +586,40 @@ export default function RuleBuilder() {
   }
 
   const handleSave = async () => {
-    if (!version.trim()) { toast.error('Version number is required'); return }
+    if (versionStatus !== 'ok') { 
+      toast.error('Please validate version first'); 
+      return 
+    }
     setSaving(true)
     try {
-      const r = await saveEmbeddedRules(buildPayload())
-      if (r.success) toast.success(`Saved v${version} — batchId: ${r.batchId?.slice(0,8)}…`)
-      else toast.error(r.validationErrors?.[0] || 'Save failed')
-    } catch(e) { toast.error(e.response?.data?.error || e.message) } finally { setSaving(false) }
+      // Save each rule to the Rules page
+      const payload = buildPayload()
+      let savedCount = 0
+      for (const [groupName, rulesList] of Object.entries(payload.rulesByGroup)) {
+        for (const rule of rulesList) {
+          if (!rule.ruleId?.trim()) {
+            toast.error('All rules must have a Rule ID')
+            setSaving(false)
+            return
+          }
+          await createRule({
+            ruleId: rule.ruleId,
+            ruleNumber: rule.ruleId.split('_').pop(),
+            description: rule.description || rule.ruleId,
+            applicableSegment: 'All',
+            phase: 'BEFORE_DATA_PULL',
+            status: 'DRAFT',
+            environment: 'TEST'
+          })
+          savedCount++
+        }
+      }
+      toast.success(`✓ Saved ${savedCount} rule${savedCount !== 1 ? 's' : ''} to Rules page`)
+      setVersionStatus(null)
+    } catch(e) { 
+      const errorMsg = e.response?.data?.message || e.response?.data?.error || e.message
+      toast.error(errorMsg)
+    } finally { setSaving(false) }
   }
 
   return (
@@ -555,7 +636,7 @@ export default function RuleBuilder() {
           <button className="btn btn-ghost" onClick={handleValidate} disabled={validating}>
             {validating?<div className="spinner" style={{width:13,height:13}}/>:'✓'} Validate
           </button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving || versionStatus !== 'ok'}>
             {saving?<><div className="spinner" style={{width:13,height:13}}/> Saving…</>:<><Save size={13}/> Save v{version}</>}
           </button>
         </div>
@@ -564,7 +645,7 @@ export default function RuleBuilder() {
       {/* Version strip */}
       <div className="card" style={{ padding:'14px 16px', marginBottom:16 }}>
         <div style={{ display:'grid', gridTemplateColumns:'260px 1fr 180px', gap:16, alignItems:'start' }}>
-          <VersionInput version={version} setVersion={setVersion}/>
+          <VersionInput version={version} setVersion={setVersion} onStatusChange={setVersionStatus}/>
           <div className="form-group">
             <label className="form-label">Change Description</label>
             <input className="form-control" value={versionDesc} onChange={e=>setVDesc(e.target.value)} placeholder="e.g. Updated PTSMI cutoff from 0.10 to 0.115"/>
@@ -613,7 +694,37 @@ export default function RuleBuilder() {
 
           {/* Variable quick ref */}
           <div className="card">
-            <div className="card-header" style={{ fontSize:12, fontWeight:600 }}>Variable Reference</div>
+            <div className="card-header" style={{ fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              Variable Reference
+              <button className="btn btn-ghost btn-sm" onClick={()=>setShowAddVar(!showAddVar)} style={{ fontSize:10, padding:'2px 6px' }}>+ Add</button>
+            </div>
+            {showAddVar && (
+              <div style={{ padding:'10px 12px', borderBottom:'1px solid var(--border)', background:'var(--bg-card2)' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+                  <div className="form-group" style={{ marginBottom:0 }}>
+                    <label className="form-label" style={{ fontSize:10 }}>Source</label>
+                    <input className="form-control" value={newVarSource} onChange={e=>setNewVarSource(e.target.value)} placeholder="e.g. tu, custom" style={{ fontSize:11, padding:'4px 6px' }}/>
+                  </div>
+                  <div className="form-group" style={{ marginBottom:0 }}>
+                    <label className="form-label" style={{ fontSize:10 }}>Variable Name</label>
+                    <input className="form-control" value={newVarName} onChange={e=>setNewVarName(e.target.value)} placeholder="e.g. customScore" style={{ fontSize:11, padding:'4px 6px' }}/>
+                  </div>
+                </div>
+                <div style={{ marginBottom:8 }}>
+                  <label className="form-label" style={{ fontSize:10 }}>Data Type</label>
+                  <select className="form-control" value={newVarType} onChange={e=>setNewVarType(e.target.value)} style={{ fontSize:11, padding:'4px 6px' }}>
+                    <option value="STRING">STRING</option>
+                    <option value="INTEGER">INTEGER</option>
+                    <option value="DOUBLE">DOUBLE</option>
+                    <option value="BOOLEAN">BOOLEAN</option>
+                  </select>
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button className="btn btn-primary btn-sm" onClick={addCustomVariable} style={{ fontSize:10, padding:'4px 8px', flex:1 }}>Add Variable</button>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>setShowAddVar(false)} style={{ fontSize:10, padding:'4px 8px' }}>Cancel</button>
+                </div>
+              </div>
+            )}
             <div style={{ maxHeight:220, overflowY:'auto', padding:'4px 0' }}>
               {Object.entries(variables).slice(0,25).map(([name,info])=>(
                 <div key={name} style={{ display:'flex', justifyContent:'space-between', padding:'4px 12px', fontSize:10 }}>

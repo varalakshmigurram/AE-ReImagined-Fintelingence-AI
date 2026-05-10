@@ -48,17 +48,26 @@ public class ConfigVersionService {
                 + "'. Must follow semantic versioning x.y.z (e.g. 1.2.3)");
         }
 
-        // 2. Collision detection — reject if version already exists in this scope
+        // 2. Collision detection — allow overwrite if DRAFT, reject if APPROVED/PROMOTED
         if (versionRepo.existsByVersionAndConfigScope(version, scope)) {
             ConfigVersion existing = versionRepo
                 .findByVersionAndConfigScope(version, scope).orElseThrow();
-            throw new VersionException(
-                "Version " + version + " already exists in scope " + scope
-                + " (created by " + existing.getCreatedBy()
-                + " on " + existing.getCreatedAt()
-                + ", status: " + existing.getStatus() + "). "
-                + "Increment the version number to proceed."
-            );
+            
+            // Allow overwriting DRAFT versions (work in progress)
+            if (existing.getStatus() == ConfigVersion.VersionStatus.DRAFT) {
+                log.info("Overwriting DRAFT version {} in scope {} (previous by {})",
+                    version, scope, existing.getCreatedBy());
+                versionRepo.delete(existing);
+            } else {
+                // Reject if APPROVED or PROMOTED
+                throw new VersionException(
+                    "Version " + version + " already exists in scope " + scope
+                    + " (created by " + existing.getCreatedBy()
+                    + " on " + existing.getCreatedAt()
+                    + ", status: " + existing.getStatus() + "). "
+                    + "Increment the version number to proceed."
+                );
+            }
         }
 
         // 3. Build checksum
@@ -220,19 +229,39 @@ public class ConfigVersionService {
             return result;
         }
 
-        boolean exists = versionRepo.existsByVersionAndConfigScope(version, scope);
-        result.put("valid", !exists);
-        if (exists) {
-            ConfigVersion cv = versionRepo.findByVersionAndConfigScope(version, scope).orElseThrow();
-            result.put("error", "Version " + version + " already used by " + cv.getCreatedBy()
-                + " (status: " + cv.getStatus() + ")");
-            result.put("existing", Map.of(
-                "createdBy", cv.getCreatedBy(),
-                "status", cv.getStatus(),
-                "createdAt", cv.getCreatedAt()
-            ));
-            // Suggest next version
-            result.put("suggestedNext", suggestNext(version));
+        Optional<ConfigVersion> existing = versionRepo.findByVersionAndConfigScope(version, scope);
+        
+        if (existing.isPresent()) {
+            ConfigVersion cv = existing.get();
+            
+            // Allow DRAFT versions to be overwritten (frontend can save)
+            if (cv.getStatus() == ConfigVersion.VersionStatus.DRAFT) {
+                result.put("valid", true);
+                result.put("canOverwrite", true);
+                result.put("message", "This DRAFT version can be updated");
+                result.put("existing", Map.of(
+                    "createdBy", cv.getCreatedBy(),
+                    "status", cv.getStatus(),
+                    "createdAt", cv.getCreatedAt()
+                ));
+            } else {
+                // Reject APPROVED/PROMOTED versions
+                result.put("valid", false);
+                result.put("canOverwrite", false);
+                result.put("error", "Version " + version + " already used by " + cv.getCreatedBy()
+                    + " (status: " + cv.getStatus() + ")");
+                result.put("existing", Map.of(
+                    "createdBy", cv.getCreatedBy(),
+                    "status", cv.getStatus(),
+                    "createdAt", cv.getCreatedAt()
+                ));
+                // Suggest next version
+                result.put("suggestedNext", suggestNext(version));
+            }
+        } else {
+            result.put("valid", true);
+            result.put("canOverwrite", false);
+            result.put("message", "Version is available");
         }
         return result;
     }

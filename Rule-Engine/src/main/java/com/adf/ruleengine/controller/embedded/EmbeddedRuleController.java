@@ -3,10 +3,8 @@ package com.adf.ruleengine.controller.embedded;
 import com.adf.ruleengine.dto.RuleDto;
 import com.adf.ruleengine.dto.embedded.*;
 import com.adf.ruleengine.model.Rule;
-import com.adf.ruleengine.model.embedded.EmbeddedCutoffEntry;
 import com.adf.ruleengine.model.embedded.RuleBundleSnapshot;
 import com.adf.ruleengine.repository.RuleRepository;
-import com.adf.ruleengine.repository.embedded.EmbeddedCutoffEntryRepository;
 import com.adf.ruleengine.repository.embedded.RuleBundleSnapshotRepository;
 import com.adf.ruleengine.service.RuleService;
 import com.adf.ruleengine.service.embedded.EmbeddedRuleEngineService;
@@ -31,7 +29,6 @@ public class EmbeddedRuleController {
     private final EmbeddedRuleEngineService ruleEngine;
     private final OfferConfigService        offerConfigService;
     private final RuleBundleSnapshotRepository ruleBundleRepo;
-    private final EmbeddedCutoffEntryRepository cutoffEntryRepo;
     private final RuleRepository            ruleRepository;
     private final RuleService               ruleService;
 
@@ -39,55 +36,67 @@ public class EmbeddedRuleController {
      * Save embedded rules.
      * Also mirrors each ruleId into the ae_rules (Rules Config tab) table so
      * the config management UI shows them, and UW ingestion cross-check works.
+     * 
+     * Frontend optimization: Returns structured response with success flag and detailed errors
      */
     @PostMapping("/rules/save")
     public ResponseEntity<RuleSaveResponse> saveRules(@RequestBody RuleSaveRequest request) {
-        RuleSaveResponse response = ruleEngine.saveRules(request);
+        try {
+            RuleSaveResponse response = ruleEngine.saveRules(request);
 
-        // Mirror rule IDs to ae_rules config table so they appear in the Rules tab
-        if (response.isSuccess() && request.getRulesByGroup() != null) {
-            request.getRulesByGroup().forEach((groupName, rules) -> {
-                if (rules == null) return;
-                for (RuleSaveRequest.RuleDefinition def : rules) {
-                    if (def.getRuleId() == null || def.getRuleId().isBlank()) continue;
-                    try {
-                        // Only create if not already present; otherwise update description
-                        Optional<Rule> existing = ruleRepository.findByRuleIdAndEnvironment(def.getRuleId(), Rule.Environment.TEST);
-                        if (existing.isEmpty()) {
-                            RuleDto.Request ruleReq = RuleDto.Request.builder()
-                                .ruleId(def.getRuleId())
-                                .ruleNumber(groupName)
-                                .description(def.getDescription() != null ? def.getDescription() : def.getCondition())
-                                .applicableSegment("All")
-                                .cutoffs(extractCutoffHint(def.getCondition()))
-                                .phase(Rule.RulePhase.TU_PULL)
-                                .status(Rule.RuleStatus.ACTIVE)
-                                .environment(Rule.Environment.TEST)
-                                .build();
-                            ruleService.createRule(ruleReq, request.getCreatedBy() != null ? request.getCreatedBy() : "rule-builder");
-                            log.info("Mirrored embedded rule {} → ae_rules table", def.getRuleId());
-                        } else {
-                            // Update description if changed
-                            Rule r = existing.get();
-                            if (def.getDescription() != null && !def.getDescription().equals(r.getDescription())) {
-                                RuleDto.Request upd = RuleDto.Request.builder()
-                                    .ruleId(r.getRuleId()).ruleNumber(r.getRuleNumber())
-                                    .description(def.getDescription())
-                                    .applicableSegment(r.getApplicableSegment())
+            // Mirror rule IDs to ae_rules config table so they appear in the Rules tab
+            if (response.isSuccess() && request.getRulesByGroup() != null) {
+                request.getRulesByGroup().forEach((groupName, rules) -> {
+                    if (rules == null) return;
+                    for (RuleSaveRequest.RuleDefinition def : rules) {
+                        if (def.getRuleId() == null || def.getRuleId().isBlank()) continue;
+                        try {
+                            // Only create if not already present; otherwise update description
+                            Optional<Rule> existing = ruleRepository.findByRuleIdAndEnvironment(def.getRuleId(), Rule.Environment.TEST);
+                            if (existing.isEmpty()) {
+                                RuleDto.Request ruleReq = RuleDto.Request.builder()
+                                    .ruleId(def.getRuleId())
+                                    .ruleNumber(groupName)
+                                    .description(def.getDescription() != null ? def.getDescription() : def.getCondition())
+                                    .applicableSegment("All")
                                     .cutoffs(extractCutoffHint(def.getCondition()))
-                                    .phase(r.getPhase()).status(r.getStatus())
-                                    .environment(r.getEnvironment()).build();
-                                ruleService.updateRule(r.getId(), upd, "rule-builder");
+                                    .phase(Rule.RulePhase.TU_PULL)
+                                    .status(Rule.RuleStatus.ACTIVE)
+                                    .environment(Rule.Environment.TEST)
+                                    .build();
+                                ruleService.createRule(ruleReq, request.getCreatedBy() != null ? request.getCreatedBy() : "rule-builder");
+                                log.info("Mirrored embedded rule {} → ae_rules table", def.getRuleId());
+                            } else {
+                                // Update description if changed
+                                Rule r = existing.get();
+                                if (def.getDescription() != null && !def.getDescription().equals(r.getDescription())) {
+                                    RuleDto.Request upd = RuleDto.Request.builder()
+                                        .ruleId(r.getRuleId()).ruleNumber(r.getRuleNumber())
+                                        .description(def.getDescription())
+                                        .applicableSegment(r.getApplicableSegment())
+                                        .cutoffs(extractCutoffHint(def.getCondition()))
+                                        .phase(r.getPhase()).status(r.getStatus())
+                                        .environment(r.getEnvironment()).build();
+                                    ruleService.updateRule(r.getId(), upd, "rule-builder");
+                                }
                             }
+                        } catch (Exception e) {
+                            log.warn("Could not mirror rule {} to ae_rules: {}", def.getRuleId(), e.getMessage());
                         }
-                    } catch (Exception e) {
-                        log.warn("Could not mirror rule {} to ae_rules: {}", def.getRuleId(), e.getMessage());
                     }
-                }
-            });
-        }
+                });
+            }
 
-        return ResponseEntity.ok(response);
+            // Return appropriate HTTP status based on success
+            return response.isSuccess() 
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.badRequest().body(response);
+                
+        } catch (Exception e) {
+            log.error("Unexpected error in saveRules", e);
+            return ResponseEntity.internalServerError()
+                .body(RuleSaveResponse.failed(List.of("Server error: " + e.getMessage())));
+        }
     }
 
     @PostMapping("/rules/execute")
@@ -109,25 +118,6 @@ public class EmbeddedRuleController {
     public ResponseEntity<Map<String, Object>> translateDescription(
             @RequestParam String ruleId, @RequestParam String description) {
         return ResponseEntity.ok(ruleEngine.translateDescription(ruleId, description));
-    }
-
-    /** Active cutoff entries — individual rows for production tracking table */
-    @GetMapping("/cutoffs/entries")
-    public ResponseEntity<List<EmbeddedCutoffEntry>> getCutoffEntries(
-            @RequestParam(required = false) String groupName,
-            @RequestParam(required = false, defaultValue = "TEST") String environment) {
-        List<EmbeddedCutoffEntry> entries = groupName != null
-            ? cutoffEntryRepo.findByGroupNameAndIsActiveTrueOrderByDimensionKeyAsc(groupName)
-            : cutoffEntryRepo.findByEnvironmentAndIsActiveTrueOrderByGroupNameAscDimensionKeyAsc(environment);
-        return ResponseEntity.ok(entries);
-    }
-
-    /** Distinct group names currently active */
-    @GetMapping("/cutoffs/groups")
-    public ResponseEntity<List<String>> getCutoffGroups() {
-        List<String> groups = cutoffEntryRepo.findByIsActiveTrueOrderByGroupNameAscDimensionKeyAsc()
-            .stream().map(EmbeddedCutoffEntry::getGroupName).distinct().collect(Collectors.toList());
-        return ResponseEntity.ok(groups);
     }
 
     /** Batch history — grouped by batchId */

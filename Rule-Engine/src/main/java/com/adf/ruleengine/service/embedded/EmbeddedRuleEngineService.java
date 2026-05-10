@@ -3,8 +3,6 @@ package com.adf.ruleengine.service.embedded;
 import com.adf.ruleengine.dto.embedded.*;
 import com.adf.ruleengine.model.embedded.*;
 import com.adf.ruleengine.repository.embedded.*;
-import com.adf.ruleengine.model.embedded.EmbeddedCutoffEntry;
-import com.adf.ruleengine.repository.embedded.EmbeddedCutoffEntryRepository;
 import com.adf.ruleengine.service.spel.SpelExpressionTranslator;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,16 +23,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class EmbeddedRuleEngineService {
 
     private final RuleBundleSnapshotRepository ruleBundleRepo;
-    private final CutoffGroupSnapshotRepository cutoffRepo;
     private final EmbeddedVariableRegistryRepository variableRepo;
     private final ObjectMapper objectMapper;
     private final SpelExpressionTranslator spelTranslator;
     private final ConfigVersionService versionService;
-    private final EmbeddedCutoffEntryRepository cutoffEntryRepo;
 
     // ─── Local JVM Cache (batchId-based invalidation) ────────────────────────
     private final Map<String, CompiledRuleGroup> compiledGroupsCache = new ConcurrentHashMap<>();
-    private final Map<String, Object>            cutoffGroupsCache   = new ConcurrentHashMap<>();
     private volatile String activeBatchId = null;
 
     // ── SAVE PIPELINE ─────────────────────────────────────────────────────────
@@ -45,12 +40,12 @@ public class EmbeddedRuleEngineService {
 
         String batchId    = UUID.randomUUID().toString();
         int    rulesSaved = 0;
-        int    cutoffsSaved = 0;
+        String targetEnv  = (request.getEnvironment() != null && !request.getEnvironment().isBlank())
+                            ? request.getEnvironment().toUpperCase() : "TEST";
 
         try {
             // Deactivate old snapshots
             ruleBundleRepo.deactivateAll();
-            cutoffRepo.deactivateAll();
 
             // Save rule groups
             if (request.getRulesByGroup() != null) {
@@ -86,38 +81,6 @@ public class EmbeddedRuleEngineService {
                 }
             }
 
-            // Save cutoffs — snapshot table + individual row table
-            if (request.getCutoffs() != null && !request.getCutoffs().isEmpty()) {
-                String cutoffJson = objectMapper.writeValueAsString(request.getCutoffs());
-                cutoffRepo.save(CutoffGroupSnapshot.builder()
-                    .batchId(batchId).rawJson(cutoffJson).checksum(sha256(cutoffJson))
-                    .changeDetails("{\"savedAt\":\"" + LocalDateTime.now() + "\"}")
-                    .isActive(true).build());
-                cutoffGroupsCache.putAll(request.getCutoffs());
-
-                // Write individual rows for production tracking table
-                cutoffEntryRepo.deactivateAll();
-                for (Map.Entry<String, Map<String, Object>> groupEntry : request.getCutoffs().entrySet()) {
-                    String groupName = groupEntry.getKey();
-                    for (Map.Entry<String, Object> dimEntry : groupEntry.getValue().entrySet()) {
-                        String dimKey = dimEntry.getKey();
-                        double value = ((Number) dimEntry.getValue()).doubleValue();
-                        String[] parts = dimKey.split(",");
-                        cutoffEntryRepo.save(EmbeddedCutoffEntry.builder()
-                            .batchId(batchId)
-                            .groupName(groupName)
-                            .dimensionKey(dimKey)
-                            .creditGrade(parts.length > 0 ? parts[0] : "")
-                            .channelCode(parts.length > 1 ? parts[1] : "")
-                            .stateCode(parts.length > 2 ? parts[2] : "")
-                            .cutoffValue(value)
-                            .environment(request.getCreatedBy() != null ? "TEST" : "TEST")
-                            .savedBy(request.getCreatedBy() != null ? request.getCreatedBy() : "system")
-                            .isActive(true).build());
-                    }
-                }
-                cutoffsSaved = request.getCutoffs().size();
-            }
 
             // Update batchId LAST (cache ready before pointer changes)
             // Register version for Flyway-style collision tracking
@@ -132,18 +95,20 @@ public class EmbeddedRuleEngineService {
                         request.getRulesByGroup()
                     );
                 } catch (ConfigVersionService.VersionException ve) {
-                    // Version collision — abort save
-                    throw ve;
+                    // Version collision — abort save with detailed message
+                    log.warn("Version collision: {}", ve.getMessage());
+                    return RuleSaveResponse.failed(List.of(ve.getMessage()));
                 }
             }
 
             activeBatchId = batchId;
-            log.info("Rules saved — batchId={}, rules={}, cutoffs={}", batchId, rulesSaved, cutoffsSaved);
-            return RuleSaveResponse.success(batchId, rulesSaved, cutoffsSaved);
+            log.info("Rules saved — batchId={}, rules={}", batchId, rulesSaved);
+            return RuleSaveResponse.success(batchId, rulesSaved, 0);
 
         } catch (Exception e) {
             log.error("Rule save failed", e);
-            return RuleSaveResponse.failed(List.of("Save failed: " + e.getMessage()));
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error during save";
+            return RuleSaveResponse.failed(List.of("Save failed: " + errorMsg));
         }
     }
 
@@ -152,11 +117,9 @@ public class EmbeddedRuleEngineService {
         long start = System.currentTimeMillis();
 
         Map<String, CompiledRuleGroup> groups = loadCompiledGroups();
-        Map<String, Object>            cutoffs = loadCutoffs();
 
-        // Enrich facts with resolved cutoff values
+        // Use facts as-is without cutoff enrichment
         Map<String, Object> enrichedFacts = new HashMap<>(request.getFacts() != null ? request.getFacts() : Map.of());
-        resolveCutoffs(cutoffs, enrichedFacts, enrichedFacts);
 
         Set<String> availableProviders = new HashSet<>(
             request.getAvailableProviders() != null ? request.getAvailableProviders() : List.of());
@@ -234,9 +197,8 @@ public class EmbeddedRuleEngineService {
     private List<String> validate(RuleSaveRequest request) {
         List<String> errors = new ArrayList<>();
         if (request == null) { errors.add("Request cannot be null"); return errors; }
-        if ((request.getRulesByGroup() == null || request.getRulesByGroup().isEmpty())
-            && (request.getCutoffs() == null || request.getCutoffs().isEmpty())) {
-            errors.add("At least one of rulesByGroup or cutoffs must be provided");
+        if (request.getRulesByGroup() == null || request.getRulesByGroup().isEmpty()) {
+            errors.add("rulesByGroup must be provided");
         }
         if (request.getRulesByGroup() != null) {
             request.getRulesByGroup().forEach((group, rules) -> {
@@ -313,37 +275,6 @@ public class EmbeddedRuleEngineService {
         return compiledGroupsCache;
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> loadCutoffs() {
-        if (!cutoffGroupsCache.isEmpty()) return cutoffGroupsCache;
-        cutoffRepo.findByIsActiveTrue().forEach(snap -> {
-            try {
-                Map<String, Object> cutoffs = objectMapper.readValue(snap.getRawJson(), Map.class);
-                cutoffGroupsCache.putAll(cutoffs);
-            } catch (Exception e) { log.warn("Failed to load cutoffs from DB"); }
-        });
-        return cutoffGroupsCache;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void resolveCutoffs(Map<String, Object> cutoffs,
-                                Map<String, Object> facts,
-                                Map<String, Object> enriched) {
-        String grade   = str(facts, "de.creditGrade", facts.get("creditGrade"));
-        String channel = str(facts, "channel", null);
-        String state   = str(facts, "contact.state", facts.get("state"));
-        String dimKey  = grade + "," + channel + "," + state;
-
-        cutoffs.forEach((name, def) -> {
-            if (def instanceof Map) {
-                Map<String, Object> dm = (Map<String, Object>) def;
-                Object val = dm.get(dimKey);
-                if (val == null) val = dm.get(grade);
-                if (val == null) val = dm.values().stream().findFirst().orElse(null);
-                enriched.put(name, val);
-            }
-        });
-    }
 
     private String str(Map<String, Object> m, String key, Object fallback) {
         Object v = m.get(key);

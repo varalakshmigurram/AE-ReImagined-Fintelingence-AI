@@ -21,7 +21,6 @@ public class DashboardController {
     private final ChannelConstraintRepository channelRepo;
     private final AuditLogRepository          auditLogRepo;
     private final RuleBundleSnapshotRepository ruleBundleRepo;
-    private final CutoffGroupSnapshotRepository cutoffRepo;
     private final OfferConfigSnapshotRepository offerConfigRepo;
     private final EmbeddedVariableRegistryRepository variableRepo;
     private final ObjectMapper objectMapper;
@@ -52,7 +51,6 @@ public class DashboardController {
             }).sum();
         s.put("embeddedRulesActive", embeddedCount);
         s.put("activeBatchId",       ruleBundleRepo.findActiveBatchId().orElse(null));
-        s.put("activeCutoffGroups",  cutoffRepo.findByIsActiveTrue().size());
         s.put("offerConfigLoaded",   !offerConfigRepo.findByIsActiveTrueOrderByCreatedAtDesc().isEmpty());
         s.put("variableCount",       variableRepo.count());
 

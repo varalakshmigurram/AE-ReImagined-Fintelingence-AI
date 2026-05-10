@@ -32,13 +32,28 @@ export default function StateConfig() {
     setFiltered(f)
   }, [states, search, filterStatus])
 
-  const handleSave = async (data) => {
+  const handleSave = async (data, submitAfter = false) => {
     try {
-      await upsertState({ ...data, environment: env })
-      toast.success(`State ${data.stateCode} saved`)
+      const savedState = await upsertState({ ...data, environment: env })
+      if (submitAfter && (savedState.approvalStatus === 'DRAFT' || savedState.approvalStatus === 'REJECTED')) {
+        await submitStateForReview(savedState.id)
+        toast.success(`State ${data.stateCode} saved and submitted for review`)
+      } else {
+        toast.success(`State ${data.stateCode} saved and email notification sent`)
+      }
       setShowModal(false); setEditState(null); load()
     } catch (e) {
       const msg = e?.response?.data?.message || e?.response?.data || e?.message || 'Error saving state'
+      toast.error(String(msg))
+    }
+  }
+
+  const handleEdit = async (s) => {
+    try {
+      setEditState(s)
+      setShowModal(true)
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.response?.data || e?.message || 'Error opening state'
       toast.error(String(msg))
     }
   }

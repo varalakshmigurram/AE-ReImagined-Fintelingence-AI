@@ -10,7 +10,6 @@ const PHASES = {
   TU_PULL:          { label: 'TU Pull',           cls: 'phase-tu',     color: '#0891B2' },
   CREDIT_GRADE:     { label: 'Credit Grade',      cls: 'phase-credit', color: '#D97706' },
   POST_CREDIT_GRADE:{ label: 'Post Credit Grade', cls: 'phase-credit', color: '#0891B2' },
-  OFFER_LOGIC:      { label: 'Offer Logic',       cls: 'phase-offer',  color: '#059669' },
 }
 
 const STATUS_MAP = {
@@ -30,6 +29,7 @@ export default function Rules() {
   const [editRule, setEditRule]   = useState(null)
   const [viewRule, setViewRule]   = useState(null)
   const [phaseFilter, setPhaseFilter] = useState('ALL')
+  const [saving, setSaving]     = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -49,19 +49,59 @@ export default function Rules() {
     setFiltered(f)
   }, [rules, search, phaseFilter])
 
-  const handleSave = async (data) => {
+  const handleSave = async (data, submitAfter = false) => {
+    if (saving) {
+      toast.error('Save in progress, please wait...')
+      return
+    }
+    
+    setSaving(true)
     try {
-      if (editRule) { await updateRule(editRule.id, data); toast.success('Rule updated') }
-      else { await createRule(data); toast.success('Rule created') }
-      setShowModal(false); setEditRule(null); load()
-    } catch (e) { toast.error(e.response?.data?.message || 'Error saving rule') }
+      let savedRule
+      if (editRule) { 
+        console.log('[Rules] Updating rule:', editRule.id, data)
+        savedRule = await updateRule(editRule.id, data)
+        if (!savedRule) {
+          console.warn('[Rules] updateRule returned null, using optimistic merge')
+          savedRule = { ...editRule, ...data }
+        }
+      } else { 
+        console.log('[Rules] Creating new rule:', data)
+        savedRule = await createRule(data)
+      }
+      
+      console.log('[Rules] Save successful, savedRule:', savedRule)
+      
+      // Optimistic update
+      if (editRule) {
+        setRules(rules.map(r => r.id === editRule.id ? savedRule : r))
+      } else {
+        setRules([...rules, savedRule])
+      }
+      
+      if (submitAfter && (savedRule.approvalStatus === 'DRAFT' || savedRule.approvalStatus === 'REJECTED')) {
+        await submitRuleForReview(savedRule.id)
+        toast.success(`${data.ruleId} saved and submitted for review`)
+        setRules(r => r.map(rule => rule.id === savedRule.id ? { ...rule, approvalStatus: 'PENDING_REVIEW' } : rule))
+      } else {
+        toast.success(editRule ? 'Rule updated' : 'Rule created')
+      }
+      setShowModal(false)
+      setEditRule(null)
+    } catch (e) {
+      console.error('[Rules] Save error:', e)
+      const errorMsg = e.response?.data?.message || e.message || 'Error saving rule'
+      toast.error(errorMsg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSubmit = async (rule) => {
     try {
       await submitRuleForReview(rule.id)
       toast.success(`${rule.ruleId} submitted for Approver review`)
-      load()
+      setRules(rules.map(r => r.id === rule.id ? { ...r, approvalStatus: 'PENDING_REVIEW' } : r))
     } catch (e) { toast.error('Could not submit for review') }
   }
 
@@ -154,7 +194,7 @@ export default function Rules() {
                       </td>
 
                       <td style={{ maxWidth:300, padding:'10px 14px' }}>
-                        <div style={{ fontSize:12, lineHeight:1.4, color:'var(--text)',
+                        <div style={{ fontSize:13, fontWeight:700, lineHeight:1.4, color:'#000',
                           overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
                           {rule.description}
                         </div>
@@ -168,7 +208,7 @@ export default function Rules() {
 
                       <td>
                         {rule.cutoffs
-                          ? <code style={{ fontSize:12, fontWeight:600, color:'#DC2626', background:'#FEF2F2', border:'1px solid rgba(220,38,38,0.2)', borderRadius:4, padding:'3px 8px', fontFamily:'var(--mono)' }}>{rule.cutoffs}</code>
+                          ? <span style={{ fontSize:13, fontWeight:700, color:'#D97706', fontFamily:'var(--mono)' }}>{rule.cutoffs}</span>
                           : <span style={{ color:'var(--text-muted)', fontSize:13 }}>—</span>}
                       </td>
 

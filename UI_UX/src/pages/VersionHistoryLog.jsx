@@ -126,7 +126,7 @@ export default function VersionHistoryLog() {
                               <Clock size={10} />
                               {formatDistanceToNow(new Date(a.timestamp), { addSuffix: true })}
                             </div>
-                            <div style={{ fontSize: 11, color: 'var(--border-light)' }}>
+                            <div style={{ fontSize: 11, color: '#000000', fontWeight: 500 }}>
                               {format(new Date(a.timestamp), 'MMM d, yyyy HH:mm')}
                             </div>
                           </div>
